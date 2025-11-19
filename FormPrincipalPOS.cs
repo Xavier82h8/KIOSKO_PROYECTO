@@ -110,9 +110,9 @@ namespace KIOSKO_Proyecto
             var flowBotones = new FlowLayoutPanel { Location = new Point(850, 15), AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false };
             btnProductos = new Button { Text = "📦 Productos", Width = 130, Height = 45, BackColor = Color.FromArgb(91, 192, 222), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
             btnGestionInventario = new Button { Text = "📥 Inventario", Width = 130, Height = 45, BackColor = Color.FromArgb(240, 173, 78), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
-            btnDetalleVentas = new Button { Text = "📖 Historial", Width = 130, Height = 45, BackColor = Color.FromArgb(91, 192, 222), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
             btnVerReportes = new Button { Text = "📈 Reportes", Width = 130, Height = 45, BackColor = Color.FromArgb(45, 140, 200), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
-            flowBotones.Controls.AddRange(new Control[] { btnProductos, btnGestionInventario, btnDetalleVentas, btnVerReportes });
+            btnDetalleVentas = new Button { Text = "📖 Historial", Width = 130, Height = 45, BackColor = Color.FromArgb(91, 192, 222), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
+            flowBotones.Controls.AddRange(new Control[] { btnProductos, btnGestionInventario, btnVerReportes, btnDetalleVentas });
             panel.Controls.Add(flowBotones);
 
             return panel;
