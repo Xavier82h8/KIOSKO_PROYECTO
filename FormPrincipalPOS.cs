@@ -30,7 +30,7 @@ namespace KIOSKO_Proyecto
         private Button btnGestionInventario;
         private Button btnDetalleVentas;
         private Button btnVerReportes;
-        private Button btnCerrarSesion;
+        private ContextMenuStrip menuUsuario;
         private Label lblItemsCarrito;
         private Button btnEliminar;
         private Button btnLimpiar;
@@ -73,8 +73,16 @@ namespace KIOSKO_Proyecto
             this.Controls.Add(panelProductos);
             this.Controls.Add(panelSuperior);
 
+            CrearMenuUsuario();
             ConfigurarEventos();
             this.ResumeLayout(false);
+        }
+
+        private void CrearMenuUsuario()
+        {
+            menuUsuario = new ContextMenuStrip();
+            var itemCerrarSesion = menuUsuario.Items.Add("Cerrar sesión");
+            itemCerrarSesion.Click += BtnCerrarSesion_Click; // Reutilizar el manejador existente
         }
 
         private Panel CrearPanelSuperior()
@@ -83,11 +91,8 @@ namespace KIOSKO_Proyecto
             panel.Paint += (s, e) => e.Graphics.DrawLine(new Pen(Color.FromArgb(220, 220, 220), 1), 0, panel.Height - 1, panel.Width, panel.Height - 1);
 
             var panelUsuario = new FlowLayoutPanel { Dock = DockStyle.Right, FlowDirection = FlowDirection.LeftToRight, AutoSize = true, Anchor = AnchorStyles.Top | AnchorStyles.Right, Padding = new Padding(0, 5, 0, 0) };
-            lblEmpleado = new Label { Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = Color.FromArgb(45, 140, 200), TextAlign = ContentAlignment.MiddleLeft, AutoSize = true, Margin = new Padding(0, 5, 10, 0) };
-            btnCerrarSesion = new Button { Text = "Cerrar sesión", Font = new Font("Segoe UI", 9), FlatStyle = FlatStyle.Flat, AutoSize = true, Cursor = Cursors.Hand };
-            btnCerrarSesion.FlatAppearance.BorderSize = 0;
+            lblEmpleado = new Label { Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = Color.FromArgb(45, 140, 200), TextAlign = ContentAlignment.MiddleLeft, AutoSize = true, Margin = new Padding(0, 5, 10, 0), Cursor = Cursors.Hand };
             panelUsuario.Controls.Add(lblEmpleado);
-            panelUsuario.Controls.Add(btnCerrarSesion);
             panel.Controls.Add(panelUsuario);
 
             var lblTitulo = new Label { Text = "🛒 Kioskito ITH", Font = new Font("Segoe UI", 18, FontStyle.Bold), ForeColor = Color.FromArgb(45, 140, 200), AutoSize = true, Location = new Point(20, 20) };
@@ -110,9 +115,9 @@ namespace KIOSKO_Proyecto
             var flowBotones = new FlowLayoutPanel { Location = new Point(850, 15), AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false };
             btnProductos = new Button { Text = "📦 Productos", Width = 130, Height = 45, BackColor = Color.FromArgb(91, 192, 222), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
             btnGestionInventario = new Button { Text = "📥 Inventario", Width = 130, Height = 45, BackColor = Color.FromArgb(240, 173, 78), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
-            btnDetalleVentas = new Button { Text = "📖 Historial", Width = 130, Height = 45, BackColor = Color.FromArgb(91, 192, 222), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
             btnVerReportes = new Button { Text = "📈 Reportes", Width = 130, Height = 45, BackColor = Color.FromArgb(45, 140, 200), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
-            flowBotones.Controls.AddRange(new Control[] { btnProductos, btnGestionInventario, btnDetalleVentas, btnVerReportes });
+            btnDetalleVentas = new Button { Text = "📖 Historial", Width = 130, Height = 45, BackColor = Color.FromArgb(91, 192, 222), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
+            flowBotones.Controls.AddRange(new Control[] { btnProductos, btnGestionInventario, btnVerReportes, btnDetalleVentas });
             panel.Controls.Add(flowBotones);
 
             return panel;
@@ -251,7 +256,7 @@ namespace KIOSKO_Proyecto
             btnGestionInventario.Click += BtnGestionInventario_Click;
             btnDetalleVentas.Click += BtnDetalleVentas_Click;
             btnVerReportes.Click += BtnVerReportes_Click;
-            btnCerrarSesion.Click += BtnCerrarSesion_Click;
+            lblEmpleado.Click += LblEmpleado_Click;
 
             // Nuevos eventos
             txtMontoEfectivo.TextChanged += TxtMontoEfectivo_TextChanged;
@@ -566,6 +571,10 @@ namespace KIOSKO_Proyecto
         private void BtnGestionInventario_Click(object sender, EventArgs e) { using (var formGestionInventario = new FormGestionInventario()) { formGestionInventario.ShowDialog(this); } CargarProductos(); }
         private void BtnDetalleVentas_Click(object sender, EventArgs e) { using (var formHistorial = new FormHistorialVentas()) { formHistorial.ShowDialog(this); } }
         private void BtnVerReportes_Click(object sender, EventArgs e) { using (var formVerReportes = new FormVerReportes()) { formVerReportes.ShowDialog(this); } }
+        private void LblEmpleado_Click(object sender, EventArgs e)
+        {
+            menuUsuario.Show(lblEmpleado, new Point(0, lblEmpleado.Height));
+        }
         private void BtnCerrarSesion_Click(object sender, EventArgs e)
         {
             if (carrito.Any()) { if (MessageBox.Show("Hay productos en el carrito. ¿Seguro que deseas cerrar sesión?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.No) { return; } }
