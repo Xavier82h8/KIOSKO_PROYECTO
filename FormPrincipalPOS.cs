@@ -565,7 +565,7 @@ namespace KIOSKO_Proyecto
         private void BtnProductos_Click(object sender, EventArgs e) { using (var formInventario = new FormInventario()) { formInventario.ShowDialog(this); } CargarProductos(); }
         private void BtnGestionInventario_Click(object sender, EventArgs e) { using (var formGestionInventario = new FormGestionInventario()) { formGestionInventario.ShowDialog(this); } CargarProductos(); }
         private void BtnDetalleVentas_Click(object sender, EventArgs e) { using (var formHistorial = new FormHistorialVentas()) { formHistorial.ShowDialog(this); } }
-        private void BtnVerReportes_Click(object sender, EventArgs e) { using (var formVerReportes = new FormVerReportes()) { formVerReportes.ShowDialog(this); } }
+        private void BtnVerReportes_Click(object sender, EventArgs e) { using (var formVerReportes = new FormVerReportes(_empleadoAutenticado)) { formVerReportes.ShowDialog(this); } }
         private void BtnCerrarSesion_Click(object sender, EventArgs e)
         {
             if (carrito.Any()) { if (MessageBox.Show("Hay productos en el carrito. ¿Seguro que deseas cerrar sesión?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.No) { return; } }
