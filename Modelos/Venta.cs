@@ -16,6 +16,7 @@ namespace KIOSKO_Proyecto.Modelos
 
         // Propiedad de navegación para los detalles
         public List<DetalleVenta> Detalles { get; set; }
+        public string NombreEmpleado { get; set; }
 
         public Venta()
         {
