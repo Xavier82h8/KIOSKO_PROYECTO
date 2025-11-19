@@ -15,3 +15,4 @@ C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\bin\Debug\itextsharp
 C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\bin\Debug\BouncyCastle.Cryptography.xml
 C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\bin\Debug\itextsharp.xml
 C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\obj\Debug\KIOSKO_P.3080546C.Up2Date
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\obj\Debug\KIOSKO_Proyecto.csprojResolveAssemblyReference.cache
