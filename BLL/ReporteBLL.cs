@@ -26,6 +26,16 @@ namespace KIOSKO_Proyecto.BLL
             return _reporteDAL.ObtenerTodosLosReportes();
         }
 
+        public List<VentaDetalladaReporte> ObtenerVentasDetalladasPorFecha(DateTime fechaInicio, DateTime fechaFin)
+        {
+            return _reporteDAL.ObtenerVentasDetalladasPorFecha(fechaInicio, fechaFin);
+        }
+
+        public Tuple<decimal, decimal> ObtenerTotalesCorteCaja(DateTime fecha)
+        {
+            return _reporteDAL.ObtenerTotalesCorteCaja(fecha);
+        }
+
         public void ExportarReportesCSV(List<Reporte> reportes, string filePath)
         {
             if (reportes == null || !reportes.Any())
@@ -53,83 +63,47 @@ namespace KIOSKO_Proyecto.BLL
             }
         }
 
-        public void GenerarCorteDeCajaPdf(List<VentaDetalladaReporte> ventas, DateTime desde, DateTime hasta, string filePath)
+        public void GenerarCorteDeCajaPdf(Tuple<decimal, decimal> totales, DateTime fecha, string filePath)
         {
-            if (ventas == null || !ventas.Any())
-            {
-                throw new ArgumentException("No hay datos de ventas para generar el reporte.");
-            }
-
             var doc = new Document(PageSize.A4, 36, 36, 54, 36);
             try
             {
-                PdfWriter writer = PdfWriter.GetInstance(doc, new FileStream(filePath, FileMode.Create));
+                PdfWriter.GetInstance(doc, new FileStream(filePath, FileMode.Create));
                 doc.Open();
 
-                // --- Fuentes ---
                 var fontTitulo = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16, BaseColor.BLACK);
                 var fontSubtitulo = FontFactory.GetFont(FontFactory.HELVETICA, 12, BaseColor.DARK_GRAY);
-                var fontHeader = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.WHITE);
-                var fontNormal = FontFactory.GetFont(FontFactory.HELVETICA, 9, BaseColor.BLACK);
-                var fontBold = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.BLACK);
+                var fontNormal = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                var fontBold = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12, BaseColor.BLACK);
 
-                // --- Encabezado ---
                 doc.Add(new Paragraph("Corte de Caja", fontTitulo) { Alignment = Element.ALIGN_CENTER });
-                doc.Add(new Paragraph($"Periodo del {desde:dd/MM/yyyy} al {hasta:dd/MM/yyyy}", fontSubtitulo) { Alignment = Element.ALIGN_CENTER });
+                doc.Add(new Paragraph($"Fecha: {fecha:dd/MM/yyyy}", fontSubtitulo) { Alignment = Element.ALIGN_CENTER });
                 doc.Add(new Paragraph($"Generado el: {DateTime.Now:g}", fontSubtitulo) { Alignment = Element.ALIGN_CENTER });
                 doc.Add(Chunk.NEWLINE);
 
-                // --- Resumen ---
-                decimal totalVentas = ventas.Sum(v => v.Subtotal);
-                decimal totalEfectivo = ventas.Where(v => v.MetodoPago == "Efectivo" || v.MetodoPago == "Mixto").GroupBy(v => v.VentaID).Select(g => g.First().MontoEfectivo ?? 0).Sum();
-                decimal totalTarjeta = ventas.Where(v => v.MetodoPago == "Tarjeta" || v.MetodoPago == "Mixto").GroupBy(v => v.VentaID).Select(g => g.First().MontoTarjeta ?? 0).Sum();
-                int numeroVentas = ventas.Select(v => v.VentaID).Distinct().Count();
-                int totalProductos = ventas.Sum(v => v.Cantidad);
+                decimal totalVentas = totales.Item1 + totales.Item2;
 
-                var resumenTable = new PdfPTable(2) { WidthPercentage = 50, HorizontalAlignment = Element.ALIGN_LEFT };
+                var resumenTable = new PdfPTable(2) { WidthPercentage = 60, HorizontalAlignment = Element.ALIGN_CENTER, SpacingBefore = 20f };
                 resumenTable.SetWidths(new float[] { 3, 2 });
-                resumenTable.AddCell(new PdfPCell(new Phrase("RESUMEN GENERAL", fontBold)) { Colspan = 2, Padding = 5, BackgroundColor = BaseColor.LIGHT_GRAY, Border = Rectangle.NO_BORDER });
-                resumenTable.AddCell(new PdfPCell(new Phrase("Ingreso Total:", fontNormal)) { Border = Rectangle.NO_BORDER, Padding = 4 });
-                resumenTable.AddCell(new PdfPCell(new Phrase(totalVentas.ToString("C2"), fontBold)) { Border = Rectangle.NO_BORDER, HorizontalAlignment = Element.ALIGN_RIGHT, Padding = 4 });
-                resumenTable.AddCell(new PdfPCell(new Phrase("Total en Efectivo:", fontNormal)) { Border = Rectangle.NO_BORDER, Padding = 4 });
-                resumenTable.AddCell(new PdfPCell(new Phrase(totalEfectivo.ToString("C2"), fontNormal)) { Border = Rectangle.NO_BORDER, HorizontalAlignment = Element.ALIGN_RIGHT, Padding = 4 });
-                resumenTable.AddCell(new PdfPCell(new Phrase("Total en Tarjeta:", fontNormal)) { Border = Rectangle.NO_BORDER, Padding = 4 });
-                resumenTable.AddCell(new PdfPCell(new Phrase(totalTarjeta.ToString("C2"), fontNormal)) { Border = Rectangle.NO_BORDER, HorizontalAlignment = Element.ALIGN_RIGHT, Padding = 4 });
-                resumenTable.AddCell(new PdfPCell(new Phrase("Número de Ventas:", fontNormal)) { Border = Rectangle.NO_BORDER, Padding = 4 });
-                resumenTable.AddCell(new PdfPCell(new Phrase(numeroVentas.ToString(), fontNormal)) { Border = Rectangle.NO_BORDER, HorizontalAlignment = Element.ALIGN_RIGHT, Padding = 4 });
-                resumenTable.AddCell(new PdfPCell(new Phrase("Total de Productos Vendidos:", fontNormal)) { Border = Rectangle.NO_BORDER, Padding = 4 });
-                resumenTable.AddCell(new PdfPCell(new Phrase(totalProductos.ToString(), fontNormal)) { Border = Rectangle.NO_BORDER, HorizontalAlignment = Element.ALIGN_RIGHT, Padding = 4 });
+
+                resumenTable.AddCell(new PdfPCell(new Phrase("CONCEPTO", fontBold)) { Padding = 8, BackgroundColor = BaseColor.LIGHT_GRAY });
+                resumenTable.AddCell(new PdfPCell(new Phrase("MONTO", fontBold)) { Padding = 8, BackgroundColor = BaseColor.LIGHT_GRAY, HorizontalAlignment = Element.ALIGN_RIGHT });
+
+                resumenTable.AddCell(new PdfPCell(new Phrase("Total en Efectivo:", fontNormal)) { Padding = 6 });
+                resumenTable.AddCell(new PdfPCell(new Phrase(totales.Item1.ToString("C2"), fontNormal)) { HorizontalAlignment = Element.ALIGN_RIGHT, Padding = 6 });
+
+                resumenTable.AddCell(new PdfPCell(new Phrase("Total en Tarjeta:", fontNormal)) { Padding = 6 });
+                resumenTable.AddCell(new PdfPCell(new Phrase(totales.Item2.ToString("C2"), fontNormal)) { HorizontalAlignment = Element.ALIGN_RIGHT, Padding = 6 });
+
+                resumenTable.AddCell(new PdfPCell(new Phrase("Ingreso Total del Día:", fontBold)) { Padding = 8, BackgroundColor = BaseColor.LIGHT_GRAY });
+                resumenTable.AddCell(new PdfPCell(new Phrase(totalVentas.ToString("C2"), fontBold)) { HorizontalAlignment = Element.ALIGN_RIGHT, Padding = 8, BackgroundColor = BaseColor.LIGHT_GRAY });
+
                 doc.Add(resumenTable);
                 doc.Add(Chunk.NEWLINE);
-
-                // --- Tabla de Detalles ---
-                doc.Add(new Paragraph("Detalle de Ventas", fontSubtitulo));
-                var table = new PdfPTable(7) { WidthPercentage = 100, SpacingBefore = 10f };
-                table.SetWidths(new float[] { 8, 15, 25, 20, 10, 10, 12 });
-
-                // Headers
-                var headers = new string[] { "Venta ID", "Fecha", "Producto", "Empleado", "Cant.", "Precio", "Subtotal" };
-                foreach (var header in headers)
-                {
-                    table.AddCell(new PdfPCell(new Phrase(header, fontHeader)) { BackgroundColor = new BaseColor(45, 140, 200), Padding = 5, HorizontalAlignment = Element.ALIGN_CENTER });
-                }
-
-                // Rows
-                foreach (var item in ventas)
-                {
-                    table.AddCell(new PdfPCell(new Phrase(item.VentaID.ToString(), fontNormal)) { Padding = 4 });
-                    table.AddCell(new PdfPCell(new Phrase(item.FechaVenta.ToString("g"), fontNormal)) { Padding = 4 });
-                    table.AddCell(new PdfPCell(new Phrase(item.NombreProducto, fontNormal)) { Padding = 4 });
-                    table.AddCell(new PdfPCell(new Phrase(item.NombreEmpleado, fontNormal)) { Padding = 4 });
-                    table.AddCell(new PdfPCell(new Phrase(item.Cantidad.ToString(), fontNormal)) { HorizontalAlignment = Element.ALIGN_CENTER, Padding = 4 });
-                    table.AddCell(new PdfPCell(new Phrase(item.PrecioUnitario.ToString("C2"), fontNormal)) { HorizontalAlignment = Element.ALIGN_RIGHT, Padding = 4 });
-                    table.AddCell(new PdfPCell(new Phrase(item.Subtotal.ToString("C2"), fontNormal)) { HorizontalAlignment = Element.ALIGN_RIGHT, Padding = 4 });
-                }
-                doc.Add(table);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                throw new Exception("Error al generar el PDF del corte de caja.", ex);
             }
             finally
             {
