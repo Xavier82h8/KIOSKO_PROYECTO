@@ -98,20 +98,32 @@ namespace KIOSKO_Proyecto
             var lblTitulo = new Label { Text = "🛒 Kioskito ITH", Font = new Font("Segoe UI", 18, FontStyle.Bold), ForeColor = Color.FromArgb(45, 140, 200), AutoSize = true, Location = new Point(20, 20) };
             panel.Controls.Add(lblTitulo);
 
-            var panelBusqueda = new Panel { Size = new Size(350, 45), Location = new Point(250, 15), BackColor = this.BackColor };
-            panelBusqueda.Paint += (s, e) => PintarBordeRedondeado(e.Graphics, panelBusqueda, Color.FromArgb(200, 200, 200), 8);
+            // --- Panel de Módulos ---
+            var flowModulos = new FlowLayoutPanel { Location = new Point(250, 15), AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false };
+            btnProductos = CrearBotonModulo("📦 Productos", Color.FromArgb(91, 192, 222));
+            btnGestionInventario = CrearBotonModulo("📥 Inventario", Color.FromArgb(240, 173, 78));
+            btnVerReportes = CrearBotonModulo("📈 Reportes", Color.FromArgb(45, 140, 200));
+            flowModulos.Controls.AddRange(new Control[] { btnProductos, btnGestionInventario, btnVerReportes });
+            panel.Controls.Add(flowModulos);
+
+            // --- Búsqueda y Categorías a la derecha ---
+            var panelBusqueda = new FlowLayoutPanel { Dock = DockStyle.Right, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, AutoSize = true, Padding = new Padding(0, 15, 20, 15) };
+
+            cmbCategoria = new ComboBox { Width = 200, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 11), FlatStyle = FlatStyle.Flat, Margin = new Padding(10, 0, 0, 0) };
+
+            var panelWrapperBusqueda = new Panel { Size = new Size(300, 45), BackColor = this.BackColor, Margin = new Padding(10, 0, 0, 0) };
+            panelWrapperBusqueda.Paint += (s, e) => PintarBordeRedondeado(e.Graphics, panelWrapperBusqueda, Color.FromArgb(200, 200, 200), 8);
             var iconoBuscar = new Label { Text = "🔍", Font = new Font("Segoe UI", 14), Location = new Point(10, 10), Size = new Size(30, 25), BackColor = Color.Transparent };
-            txtBuscar = new TextBox { Location = new Point(45, 12), Width = 290, BorderStyle = BorderStyle.None, Font = new Font("Segoe UI", 12), BackColor = this.BackColor, ForeColor = Color.FromArgb(50, 50, 50) };
+            txtBuscar = new TextBox { Location = new Point(45, 12), Width = 240, BorderStyle = BorderStyle.None, Font = new Font("Segoe UI", 12), BackColor = this.BackColor, ForeColor = Color.FromArgb(50, 50, 50) };
             txtBuscar.Text = "Buscar productos...";
             txtBuscar.ForeColor = Color.Gray;
             txtBuscar.Enter += (s, e) => { if (txtBuscar.Text == "Buscar productos...") { txtBuscar.Text = ""; txtBuscar.ForeColor = Color.Black; } };
             txtBuscar.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtBuscar.Text)) { txtBuscar.Text = "Buscar productos..."; txtBuscar.ForeColor = Color.Gray; } };
-            panelBusqueda.Controls.AddRange(new Control[] { iconoBuscar, txtBuscar });
+            panelWrapperBusqueda.Controls.AddRange(new Control[] { iconoBuscar, txtBuscar });
+
+            panelBusqueda.Controls.Add(cmbCategoria);
+            panelBusqueda.Controls.Add(panelWrapperBusqueda);
             panel.Controls.Add(panelBusqueda);
-
-            cmbCategoria = new ComboBox { Location = new Point(620, 18), Width = 200, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 11), FlatStyle = FlatStyle.Flat };
-            panel.Controls.Add(cmbCategoria);
-
             var flowBotones = new FlowLayoutPanel { Location = new Point(850, 15), AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false };
             btnProductos = new Button { Text = "📦 Productos", Width = 130, Height = 45, BackColor = Color.FromArgb(91, 192, 222), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
             btnGestionInventario = new Button { Text = "📥 Inventario", Width = 130, Height = 45, BackColor = Color.FromArgb(240, 173, 78), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
@@ -254,7 +266,6 @@ namespace KIOSKO_Proyecto
             btnLimpiar.Click += BtnLimpiar_Click;
             btnProductos.Click += BtnProductos_Click;
             btnGestionInventario.Click += BtnGestionInventario_Click;
-            btnDetalleVentas.Click += BtnDetalleVentas_Click;
             btnVerReportes.Click += BtnVerReportes_Click;
             lblEmpleado.Click += LblEmpleado_Click;
 
@@ -273,7 +284,6 @@ namespace KIOSKO_Proyecto
             bool esSupervisor = puesto.Equals("Supervisor", StringComparison.OrdinalIgnoreCase) || puesto.Equals("Supervisora", StringComparison.OrdinalIgnoreCase);
             btnProductos.Visible = esAdmin || esGerente || esSupervisor;
             btnGestionInventario.Visible = esAdmin || esGerente || esSupervisor;
-            btnDetalleVentas.Visible = !puesto.Equals("Cajero", StringComparison.OrdinalIgnoreCase);
             btnVerReportes.Visible = esAdmin || esGerente || esSupervisor;
         }
 
@@ -580,6 +590,22 @@ namespace KIOSKO_Proyecto
         {
             if (carrito.Any()) { if (MessageBox.Show("Hay productos en el carrito. ¿Seguro que deseas cerrar sesión?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.No) { return; } }
             if (MessageBox.Show("¿Deseas cerrar sesión?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes) { this.DialogResult = DialogResult.Retry; this.Close(); }
+        }
+
+        private Button CrearBotonModulo(string texto, Color color)
+        {
+            return new Button
+            {
+                Text = texto,
+                Width = 140,
+                Height = 45,
+                BackColor = color,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand,
+                Margin = new Padding(5, 0, 5, 0)
+            };
         }
     }
 }

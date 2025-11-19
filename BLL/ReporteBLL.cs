@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -15,17 +14,17 @@ namespace KIOSKO_Proyecto.BLL
     {
         private ReporteDAL _reporteDAL = new ReporteDAL();
 
-        public void GuardarReporte(Reporte reporte)
+        public List<VentaDetalladaReporte> GenerarReporteVentasDetallado(DateTime fechaInicio, DateTime fechaFin)
         {
-            // Aquí se podría añadir lógica de negocio adicional antes de guardar
-            _reporteDAL.GuardarReporte(reporte);
+            return _reporteDAL.ObtenerVentasDetalladasPorFecha(fechaInicio, fechaFin);
         }
 
-        public List<Reporte> ObtenerTodosLosReportes()
+        public CorteCaja GenerarCorteCajaDiario(DateTime fecha)
         {
-            return _reporteDAL.ObtenerTodosLosReportes();
+            return _reporteDAL.ObtenerCorteCajaPorFecha(fecha);
         }
 
+        public void ExportarVentasDetalladasCSV(List<VentaDetalladaReporte> data, string filePath)
         public List<VentaDetalladaReporte> ObtenerVentasDetalladasPorFecha(DateTime fechaInicio, DateTime fechaFin)
         {
             return _reporteDAL.ObtenerVentasDetalladasPorFecha(fechaInicio, fechaFin);
@@ -38,31 +37,19 @@ namespace KIOSKO_Proyecto.BLL
 
         public void ExportarReportesCSV(List<Reporte> reportes, string filePath)
         {
-            if (reportes == null || !reportes.Any())
-            {
-                throw new ArgumentException("La lista de reportes no puede estar vacía.");
-            }
+            var sb = new StringBuilder();
+            sb.AppendLine("VentaID,FechaVenta,NombreEmpleado,NombreProducto,Cantidad,PrecioUnitario,Subtotal,TotalVenta,MetodoPago");
 
-            try
+            foreach (var item in data)
             {
-                using (StreamWriter sw = new StreamWriter(filePath, false, Encoding.UTF8))
-                {
-                    // Escribir encabezados
-                    sw.WriteLine("IdReporte,FechaGeneracion,FechaInicio,FechaFin,TotalVentas,GeneradoPorEmpleadoId,NombreEmpleadoGenerador");
-
-                    // Escribir datos
-                    foreach (var reporte in reportes)
-                    {
-                        sw.WriteLine($"{reporte.IdReporte},{reporte.FechaGeneracion:yyyy-MM-dd HH:mm:ss},{reporte.FechaInicio:yyyy-MM-dd HH:mm:ss},{reporte.FechaFin:yyyy-MM-dd HH:mm:ss},{reporte.TotalVentas},{reporte.GeneradoPorEmpleadoId},{reporte.NombreEmpleadoGenerador}");
-                    }
-                }
+                sb.AppendLine($"{item.VentaID},{item.FechaVenta:g},\"{item.NombreEmpleado}\",\"{item.NombreProducto}\",{item.Cantidad},{item.PrecioUnitario},{item.Subtotal},{item.TotalVenta},\"{item.MetodoPago}\"");
             }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error al exportar reportes a CSV: {ex.Message}", ex);
-            }
+            File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
         }
 
+        public void ExportarCorteCajaPDF(CorteCaja corte, string filePath)
+        {
+            var doc = new Document(PageSize.A4);
         public void GenerarCorteDeCajaPdf(Tuple<decimal, decimal> totales, DateTime fecha, string filePath)
         {
             var doc = new Document(PageSize.A4, 36, 36, 54, 36);
@@ -71,6 +58,50 @@ namespace KIOSKO_Proyecto.BLL
                 PdfWriter.GetInstance(doc, new FileStream(filePath, FileMode.Create));
                 doc.Open();
 
+                // --- Fuentes ---
+                var fontTitulo = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18);
+                var fontSubtitulo = FontFactory.GetFont(FontFactory.HELVETICA, 12, BaseColor.DARK_GRAY);
+                var fontHeader = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.WHITE);
+                var fontNormal = FontFactory.GetFont(FontFactory.HELVETICA, 9);
+                var fontBold = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
+
+                // --- Encabezado ---
+                doc.Add(new Paragraph("Corte de Caja Diario", fontTitulo) { Alignment = Element.ALIGN_CENTER });
+                doc.Add(new Paragraph($"Fecha: {corte.Fecha:D}", fontSubtitulo) { Alignment = Element.ALIGN_CENTER });
+                doc.Add(new Paragraph($"Generado el: {DateTime.Now:g}", fontSubtitulo) { Alignment = Element.ALIGN_CENTER });
+                doc.Add(Chunk.NEWLINE);
+
+                // --- Resumen ---
+                var resumenTable = new PdfPTable(2) { WidthPercentage = 60, HorizontalAlignment = Element.ALIGN_LEFT, SpacingAfter = 20 };
+                resumenTable.AddCell(new PdfPCell(new Phrase("Total del Día:", fontBold)) { Border = Rectangle.NO_BORDER });
+                resumenTable.AddCell(new PdfPCell(new Phrase(corte.TotalDia.ToString("C2"), fontBold)) { HorizontalAlignment = Element.ALIGN_RIGHT, Border = Rectangle.NO_BORDER });
+                resumenTable.AddCell(new PdfPCell(new Phrase("Total en Efectivo:", fontNormal)) { Border = Rectangle.NO_BORDER });
+                resumenTable.AddCell(new PdfPCell(new Phrase(corte.TotalEfectivo.ToString("C2"), fontNormal)) { HorizontalAlignment = Element.ALIGN_RIGHT, Border = Rectangle.NO_BORDER });
+                resumenTable.AddCell(new PdfPCell(new Phrase("Total en Tarjeta:", fontNormal)) { Border = Rectangle.NO_BORDER });
+                resumenTable.AddCell(new PdfPCell(new Phrase(corte.TotalTarjeta.ToString("C2"), fontNormal)) { HorizontalAlignment = Element.ALIGN_RIGHT, Border = Rectangle.NO_BORDER });
+                doc.Add(resumenTable);
+
+                // --- Tabla de Ventas ---
+                var table = new PdfPTable(6) { WidthPercentage = 100 };
+                table.SetWidths(new float[] { 1, 3, 2, 2, 2, 2 });
+                // Headers
+                var headers = new string[] { "ID", "Hora", "Total Venta", "Monto Efectivo", "Monto Tarjeta", "Empleado" };
+                foreach (var header in headers)
+                {
+                    table.AddCell(new PdfPCell(new Phrase(header, fontHeader)) { BackgroundColor = new BaseColor(45, 140, 200), Padding = 5, HorizontalAlignment = Element.ALIGN_CENTER });
+                }
+                // Rows
+                foreach (var venta in corte.Ventas)
+                {
+                    table.AddCell(venta.VentaID.ToString());
+                    table.AddCell(venta.FechaVenta.ToString("T"));
+                    table.AddCell(new PdfPCell(new Phrase(venta.TotalVenta.ToString("C2"), fontNormal)) { HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(new PdfPCell(new Phrase((venta.MontoEfectivo ?? 0).ToString("C2"), fontNormal)) { HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(new PdfPCell(new Phrase((venta.MontoTarjeta ?? 0).ToString("C2"), fontNormal)) { HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(venta.NombreEmpleado);
+                }
+                doc.Add(table);
+            }
                 var fontTitulo = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16, BaseColor.BLACK);
                 var fontSubtitulo = FontFactory.GetFont(FontFactory.HELVETICA, 12, BaseColor.DARK_GRAY);
                 var fontNormal = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
