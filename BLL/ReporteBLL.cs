@@ -39,6 +39,34 @@ namespace KIOSKO_Proyecto.BLL
         public void ExportarCorteCajaPDF(CorteCaja corte, string filePath)
         {
             var doc = new Document(PageSize.A4);
+        public List<VentaDetalladaReporte> ObtenerVentasDetalladasPorFecha(DateTime fechaInicio, DateTime fechaFin)
+        {
+            return _reporteDAL.ObtenerVentasDetalladasPorFecha(fechaInicio, fechaFin);
+        }
+
+        public Tuple<decimal, decimal> ObtenerTotalesCorteCaja(DateTime fecha)
+        {
+            return _reporteDAL.ObtenerTotalesCorteCaja(fecha);
+        }
+
+        public void ExportarReportesCSV(List<Reporte> reportes, string filePath)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("VentaID,FechaVenta,NombreEmpleado,NombreProducto,Cantidad,PrecioUnitario,Subtotal,TotalVenta,MetodoPago");
+
+            foreach (var item in data)
+            {
+                sb.AppendLine($"{item.VentaID},{item.FechaVenta:g},\"{item.NombreEmpleado}\",\"{item.NombreProducto}\",{item.Cantidad},{item.PrecioUnitario},{item.Subtotal},{item.TotalVenta},\"{item.MetodoPago}\"");
+            }
+            File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+        }
+
+        public void ExportarCorteCajaPDF(CorteCaja corte, string filePath)
+        {
+            var doc = new Document(PageSize.A4);
+        public void GenerarCorteDeCajaPdf(Tuple<decimal, decimal> totales, DateTime fecha, string filePath)
+        {
+            var doc = new Document(PageSize.A4, 36, 36, 54, 36);
             try
             {
                 PdfWriter.GetInstance(doc, new FileStream(filePath, FileMode.Create));
@@ -87,6 +115,40 @@ namespace KIOSKO_Proyecto.BLL
                     table.AddCell(venta.NombreEmpleado);
                 }
                 doc.Add(table);
+            }
+                var fontTitulo = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16, BaseColor.BLACK);
+                var fontSubtitulo = FontFactory.GetFont(FontFactory.HELVETICA, 12, BaseColor.DARK_GRAY);
+                var fontNormal = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                var fontBold = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12, BaseColor.BLACK);
+
+                doc.Add(new Paragraph("Corte de Caja", fontTitulo) { Alignment = Element.ALIGN_CENTER });
+                doc.Add(new Paragraph($"Fecha: {fecha:dd/MM/yyyy}", fontSubtitulo) { Alignment = Element.ALIGN_CENTER });
+                doc.Add(new Paragraph($"Generado el: {DateTime.Now:g}", fontSubtitulo) { Alignment = Element.ALIGN_CENTER });
+                doc.Add(Chunk.NEWLINE);
+
+                decimal totalVentas = totales.Item1 + totales.Item2;
+
+                var resumenTable = new PdfPTable(2) { WidthPercentage = 60, HorizontalAlignment = Element.ALIGN_CENTER, SpacingBefore = 20f };
+                resumenTable.SetWidths(new float[] { 3, 2 });
+
+                resumenTable.AddCell(new PdfPCell(new Phrase("CONCEPTO", fontBold)) { Padding = 8, BackgroundColor = BaseColor.LIGHT_GRAY });
+                resumenTable.AddCell(new PdfPCell(new Phrase("MONTO", fontBold)) { Padding = 8, BackgroundColor = BaseColor.LIGHT_GRAY, HorizontalAlignment = Element.ALIGN_RIGHT });
+
+                resumenTable.AddCell(new PdfPCell(new Phrase("Total en Efectivo:", fontNormal)) { Padding = 6 });
+                resumenTable.AddCell(new PdfPCell(new Phrase(totales.Item1.ToString("C2"), fontNormal)) { HorizontalAlignment = Element.ALIGN_RIGHT, Padding = 6 });
+
+                resumenTable.AddCell(new PdfPCell(new Phrase("Total en Tarjeta:", fontNormal)) { Padding = 6 });
+                resumenTable.AddCell(new PdfPCell(new Phrase(totales.Item2.ToString("C2"), fontNormal)) { HorizontalAlignment = Element.ALIGN_RIGHT, Padding = 6 });
+
+                resumenTable.AddCell(new PdfPCell(new Phrase("Ingreso Total del Día:", fontBold)) { Padding = 8, BackgroundColor = BaseColor.LIGHT_GRAY });
+                resumenTable.AddCell(new PdfPCell(new Phrase(totalVentas.ToString("C2"), fontBold)) { HorizontalAlignment = Element.ALIGN_RIGHT, Padding = 8, BackgroundColor = BaseColor.LIGHT_GRAY });
+
+                doc.Add(resumenTable);
+                doc.Add(Chunk.NEWLINE);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error al generar el PDF del corte de caja.", ex);
             }
             finally
             {
