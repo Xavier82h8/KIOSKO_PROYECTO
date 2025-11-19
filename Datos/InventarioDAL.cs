@@ -79,6 +79,7 @@ namespace KIOSKO_Proyecto.Datos
                         // 2. Insertar el registro en la tabla de inventario
                         string queryInventario = @"
                             INSERT INTO INVENTARIO (ID_PRODUCTO, CANTIDAD, FECHA_REGISTRO, OBSERVACIONES, PROVEEDOR)
+
                             INSERT INTO INVENTARIO (ID_PRODUCTO, TOTAL_PRODUCTOS, FECHA_REGISTRO, OBSERVACIONES, PROVEEDOR) 
                             VALUES (@IdProducto, @Cantidad, @FechaRegistro, @Observaciones, @Proveedor)";
 
