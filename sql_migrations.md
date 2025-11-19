@@ -1,0 +1,27 @@
+-- Modificación de la tabla VENTA para añadir campos de pago y cambio.
+-- Se asume que la tabla VENTA ya existe.
+
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'VENTA' AND COLUMN_NAME = 'MontoEfectivo')
+BEGIN
+    ALTER TABLE VENTA ADD MontoEfectivo DECIMAL(10, 2) NULL;
+END;
+
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'VENTA' AND COLUMN_NAME = 'MontoTarjeta')
+BEGIN
+    ALTER TABLE VENTA ADD MontoTarjeta DECIMAL(10, 2) NULL;
+END;
+
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'VENTA' AND COLUMN_NAME = 'Cambio')
+BEGIN
+    ALTER TABLE VENTA ADD Cambio DECIMAL(10, 2) NULL;
+END;
+
+-- La tabla DETALLE_VENTA parece tener ya la estructura necesaria, no se requieren cambios.
+-- Estructura esperada de DETALLE_VENTA:
+-- ID_DETALLE_VENTA, ID_VENTA, ID_PRODUCTO, CANTIDAD, PRECIO_UNITARIO, SUBTOTAL
+
+-- Agregando columna de fecha de caducidad a la tabla de productos
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'PRODUCTO' AND COLUMN_NAME = 'FechaCaducidad')
+BEGIN
+    ALTER TABLE PRODUCTO ADD FechaCaducidad DATE NULL;
+END;

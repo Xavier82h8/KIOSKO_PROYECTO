@@ -1,0 +1,17 @@
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\bin\Debug\KIOSKO_Proyecto.exe.config
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\bin\Debug\KIOSKO_Proyecto.exe
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\bin\Debug\KIOSKO_Proyecto.pdb
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\obj\Debug\KIOSKO_Proyecto.csproj.AssemblyReference.cache
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\obj\Debug\KIOSKO_Proyecto.FormInventario.resources
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\obj\Debug\KIOSKO_Proyecto.FormPrincipalPOS.resources
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\obj\Debug\KIOSKO_Proyecto.Properties.Resources.resources
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\obj\Debug\KIOSKO_Proyecto.csproj.GenerateResource.cache
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\obj\Debug\KIOSKO_Proyecto.csproj.CoreCompileInputs.cache
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\obj\Debug\KIOSKO_Proyecto.exe
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\obj\Debug\KIOSKO_Proyecto.pdb
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\obj\Debug\KIOSKO_Proyecto.exe.config
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\bin\Debug\BouncyCastle.Cryptography.dll
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\bin\Debug\itextsharp.dll
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\bin\Debug\BouncyCastle.Cryptography.xml
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\bin\Debug\itextsharp.xml
+C:\Users\javia\source\repos\KIOSKO_Proyecto\KIOSKO_Proyecto\obj\Debug\KIOSKO_P.3080546C.Up2Date

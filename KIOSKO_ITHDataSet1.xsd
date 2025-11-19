@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="KIOSKO_ITHDataSet1" xmlns="" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+  <xs:element name="KIOSKO_ITHDataSet1" msdata:IsDataSet="true">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="EMPLEADO">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="NOMBRE_EMP" type="xs:string" minOccurs="0" />
+              <xs:element name="EDAD" type="xs:int" minOccurs="0" />
+              <xs:element name="DIRECCION" type="xs:string" minOccurs="0" />
+              <xs:element name="TELEFONO" type="xs:string" minOccurs="0" />
+              <xs:element name="PUESTO" type="xs:string" minOccurs="0" />
+              <xs:element name="TURNO" type="xs:string" minOccurs="0" />
+              <xs:element name="SALARIO" type="xs:double" minOccurs="0" />
+              <!-- Nueva columna CONTRASENA -->
+              <xs:element name="CONTRASENA" type="xs:string" minOccurs="0" />
+              <xs:element name="ID_EMPLEADO" type="xs:int" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <!-- Mantén el resto de las tablas (PRODUCTO, VENTA, etc.) en el XSD existente -->
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

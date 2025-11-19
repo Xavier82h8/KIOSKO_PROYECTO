@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this schema is to represent raw activity data 
+    as XML. The primary way to do this is to represent the definition of the
+    type by the assembly if it's a system type (e.g. System.String, System.Drawing.Bitmap)
+    or by the .resx file if it's a custom type.
+    
+    A ResX file format consists of a root ResXResourceSet object containing a 
+    collection of ResXDataNode objects.
+    
+    The ResXDataNode object is the primary way in which resources are stored inside a 
+    .resx file. Each ResXDataNode in the ResXResourceSet contains a 
+    name, value as text, and a comment.
+    
+    If the resource is a string, the ResXDataNode should contain a 
+    name, and value as text.
+    
+    If the resource is a system object, the ResXDataNode should contain a 
+    name, value as text, and a type to describe the type.
+    
+    If the resource is a custom object, the ResXDataNode should contain a 
+    name, value as text, and a type to describe the type, and a mimetype for the object.
+    
+    The ResXDataNode class also includes a property named "file" which is used to store 
+    file name or ID.
+    
+    Sometimes the resource value is too big to be stored in the .resx file. In 
+    such case, the ResXDataNode should contain a name, and a file reference to the 
+    external file.
+    
+    Example:
+    
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</resheader>
+    <data name="Name1"><value>this is my string</value><comment>this is a comment</comment></data>
+    <assembly alias="SomeAssemblyName" name="SomeAssemblyName, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
+    <data name="Name2" type="System.Resources.ResXFileRef, System.Windows.Forms">
+        <value>..\..\SomeFolder\a.gif</value>
+    </data>
+    <data name="Name3" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded value]</value>
+    </data>
+    -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+</root>

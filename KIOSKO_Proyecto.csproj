@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{BDDF0B74-8290-492D-B6E5-3BD031E4D487}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>KIOSKO_Proyecto</RootNamespace>
+    <AssemblyName>KIOSKO_Proyecto</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="BouncyCastle.Cryptography, Version=2.0.0.0, Culture=neutral, PublicKeyToken=072edcf4a5328938, processorArchitecture=MSIL">
+      <HintPath>..\packages\BouncyCastle.Cryptography.2.4.0\lib\net461\BouncyCastle.Cryptography.dll</HintPath>
+    </Reference>
+    <Reference Include="itextsharp, Version=5.5.13.4, Culture=neutral, PublicKeyToken=8354ae6d2174ddca, processorArchitecture=MSIL">
+      <HintPath>..\packages\iTextSharp.5.5.13.4\lib\net461\itextsharp.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="BLL\EmpleadoBLL.cs" />
+    <Compile Include="BLL\InventarioBLL.cs" />
+    <Compile Include="BLL\ProductoBLL.cs" />
+    <Compile Include="BLL\VentaBLL.cs" />
+    <Compile Include="Datos\Conexion.cs" />
+    <Compile Include="Datos\EmpleadoDAL.cs" />
+    <Compile Include="Datos\InventarioDAL.cs" />
+    <Compile Include="Datos\ProductoDAL.cs" />
+    <Compile Include="Datos\VentaDAL.cs" />
+    <Compile Include="Datos\ReporteDAL.cs" />
+    <Compile Include="FormDetalleVentas.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormPerfilEmpleado.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormPrincipalPOS.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormReportes.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormSupervisionInventario.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormVerReportes.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="KIOSKO_ITHDataSet.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>KIOSKO_ITHDataSet.xsd</DependentUpon>
+    </Compile>
+    <Compile Include="KIOSKO_ITHDataSet1.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>KIOSKO_ITHDataSet1.xsd</DependentUpon>
+    </Compile>
+    <Compile Include="Modelos\DetalleVenta.cs" />
+    <Compile Include="Modelos\Empleado.cs" />
+    <Compile Include="Modelos\Inventario.cs" />
+    <Compile Include="Modelos\Producto.cs" />
+    <Compile Include="Modelos\ResultadoVenta.cs" />
+    <Compile Include="Modelos\Venta.cs" />
+    <Compile Include="Modelos\VentaDetalladaReporte.cs" />
+    <Compile Include="Modelos\Reporte.cs" />
+    <Compile Include="BLL\ReporteBLL.cs" />
+    <Compile Include="FormInventario.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormInventario.Designer.cs">
+      <DependentUpon>FormInventario.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormLogin.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormularioProducto.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormGestionProductos.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormHistorialVentas.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="FormInventario.resx">
+      <DependentUpon>FormInventario.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormPrincipalPOS.resx">
+      <DependentUpon>FormPrincipalPOS.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <None Include="KIOSKO_ITHDataSet.xsc">
+      <DependentUpon>KIOSKO_ITHDataSet.xsd</DependentUpon>
+    </None>
+    <None Include="KIOSKO_ITHDataSet.xsd">
+      <Generator>MSDataSetGenerator</Generator>
+      <LastGenOutput>KIOSKO_ITHDataSet.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="KIOSKO_ITHDataSet.xss">
+      <DependentUpon>KIOSKO_ITHDataSet.xsd</DependentUpon>
+    </None>
+    <None Include="KIOSKO_ITHDataSet1.xsc">
+      <DependentUpon>KIOSKO_ITHDataSet1.xsd</DependentUpon>
+    </None>
+    <None Include="KIOSKO_ITHDataSet1.xsd">
+      <Generator>MSDataSetGenerator</Generator>
+      <LastGenOutput>KIOSKO_ITHDataSet1.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="KIOSKO_ITHDataSet1.xss">
+      <DependentUpon>KIOSKO_ITHDataSet1.xsd</DependentUpon>
+    </None>
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
