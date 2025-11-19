@@ -30,6 +30,30 @@ namespace KIOSKO_Proyecto
         private ReporteBLL _reporteBLL = new ReporteBLL();
         private Empleado _empleadoActual;
 
+        // --- Controles UI ---
+        private TabControl tabControlPrincipal;
+        private TabPage tabVentasDetalladas;
+        private TabPage tabCorteCaja;
+
+        // Controles para Ventas Detalladas
+        private DateTimePicker dtpInicioVentas;
+        private DateTimePicker dtpFinVentas;
+        private Button btnGenerarReporteVentas;
+        private Button btnExportarVentasCSV;
+        private DataGridView dgvVentasDetalladas;
+
+        // Controles para Corte de Caja
+        private DateTimePicker dtpFechaCorte;
+        private Button btnGenerarCorte;
+        private Button btnExportarCortePDF;
+        private DataGridView dgvCorteCaja;
+        private Label lblTotalCorte;
+
+
+        public FormVerReportes(Empleado empleado)
+        {
+            _empleado = empleado;
+            this.Text = "Módulo de Reportes";
         public FormVerReportes(Empleado empleado)
         {
             _empleadoActual = empleado;
@@ -85,6 +109,58 @@ namespace KIOSKO_Proyecto
             // Inicializar Pestañas
             InicializarTabVentas();
             InicializarTabCorteCaja();
+        }
+
+        private void InicializarTabVentas()
+        {
+            var panelSuperiorVentas = new FlowLayoutPanel { Dock = DockStyle.Top, Padding = new Padding(10), Height = 60, WrapContents = false };
+            dtpInicioVentas = new DateTimePicker { Value = DateTime.Now.Date, Format = DateTimePickerFormat.Short, Width = 120 };
+            dtpFinVentas = new DateTimePicker { Value = DateTime.Now.Date.AddDays(1).AddSeconds(-1), Format = DateTimePickerFormat.Short, Width = 120 };
+            btnGenerarReporteVentas = new Button { Text = "Generar Reporte", Width = 150, Height = 30, BackColor = Color.DodgerBlue, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnExportarVentasCSV = new Button { Text = "Exportar a CSV", Width = 150, Height = 30, BackColor = Color.SeaGreen, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Enabled = false };
+
+            panelSuperiorVentas.Controls.AddRange(new Control[] {
+                new Label { Text = "Desde:", AutoSize = true, Margin = new Padding(5, 5, 0, 0) }, dtpInicioVentas,
+                new Label { Text = "Hasta:", AutoSize = true, Margin = new Padding(10, 5, 0, 0) }, dtpFinVentas,
+                btnGenerarReporteVentas, btnExportarVentasCSV
+            });
+
+            dgvVentasDetalladas = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false, ReadOnly = true, BackgroundColor = Color.WhiteSmoke };
+
+            tabVentasDetalladas.Controls.Add(dgvVentasDetalladas);
+            tabVentasDetalladas.Controls.Add(panelSuperiorVentas);
+
+            // Eventos
+            btnGenerarReporteVentas.Click += BtnGenerarReporteVentas_Click;
+            btnExportarVentasCSV.Click += BtnExportarVentasCSV_Click;
+        }
+
+        private void InicializarTabCorteCaja()
+        {
+            var panelSuperiorCorte = new FlowLayoutPanel { Dock = DockStyle.Top, Padding = new Padding(10), Height = 60, WrapContents = false };
+            dtpFechaCorte = new DateTimePicker { Value = DateTime.Now.Date, Format = DateTimePickerFormat.Short, Width = 120 };
+            btnGenerarCorte = new Button { Text = "Generar Corte", Width = 150, Height = 30, BackColor = Color.DodgerBlue, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnExportarCortePDF = new Button { Text = "Exportar a PDF", Width = 150, Height = 30, BackColor = Color.IndianRed, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Enabled = false };
+
+            panelSuperiorCorte.Controls.AddRange(new Control[] {
+                new Label { Text = "Fecha:", AutoSize = true, Margin = new Padding(5, 5, 0, 0) }, dtpFechaCorte,
+                btnGenerarCorte, btnExportarCortePDF
+            });
+
+            dgvCorteCaja = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false, ReadOnly = true, BackgroundColor = Color.WhiteSmoke };
+
+            lblTotalCorte = new Label { Dock = DockStyle.Bottom, Text = "Total del Día: $0.00", Font = new Font("Segoe UI", 14, FontStyle.Bold), Padding = new Padding(10), Height = 50, TextAlign = ContentAlignment.MiddleRight, BackColor = Color.LightGray };
+
+            tabCorteCaja.Controls.Add(dgvCorteCaja);
+            tabCorteCaja.Controls.Add(lblTotalCorte);
+            tabCorteCaja.Controls.Add(panelSuperiorCorte);
+
+            // Eventos
+            btnGenerarCorte.Click += BtnGenerarCorte_Click;
+            btnExportarCortePDF.Click += BtnExportarCortePDF_Click;
+        }
+
+        private void BtnGenerarReporteVentas_Click(object sender, EventArgs e)
         }
 
         private void InicializarTabVentas()
@@ -231,6 +307,60 @@ namespace KIOSKO_Proyecto
 
             try
             {
+                var reportData = _reporteBLL.GenerarReporteVentasDetallado(dtpInicioVentas.Value, dtpFinVentas.Value);
+                dgvVentasDetalladas.DataSource = reportData;
+                dgvVentasDetalladas.Tag = reportData; // Guardar datos para exportación
+                btnExportarVentasCSV.Enabled = reportData.Count > 0;
+                if (reportData.Count == 0)
+                {
+                    MessageBox.Show("No se encontraron ventas en el rango de fechas seleccionado.", "Sin Resultados", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al generar el reporte de ventas: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnExportarVentasCSV_Click(object sender, EventArgs e)
+        {
+            var data = dgvVentasDetalladas.Tag as List<VentaDetalladaReporte>;
+            if (data == null || data.Count == 0)
+            {
+                MessageBox.Show("No hay datos para exportar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using (var sfd = new SaveFileDialog { Filter = "CSV file (*.csv)|*.csv", FileName = $"ReporteVentas_{DateTime.Now:yyyyMMdd}.csv" })
+            {
+                if (sfd.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        _reporteBLL.ExportarVentasDetalladasCSV(data, sfd.FileName);
+                        MessageBox.Show("Reporte exportado exitosamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error al exportar a CSV: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
+        private void BtnGenerarCorte_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                var corteData = _reporteBLL.GenerarCorteCajaDiario(dtpFechaCorte.Value);
+                dgvCorteCaja.DataSource = corteData.Ventas;
+                dgvCorteCaja.Tag = corteData; // Guardar todo el objeto para el PDF
+                lblTotalCorte.Text = $"Total del Día: {corteData.TotalDia:C2} | Efectivo: {corteData.TotalEfectivo:C2} | Tarjeta: {corteData.TotalTarjeta:C2}";
+                btnExportarCortePDF.Enabled = corteData.Ventas.Count > 0;
+
+                if (corteData.Ventas.Count == 0)
+                {
+                    MessageBox.Show("No se encontraron ventas para la fecha seleccionada.", "Sin Resultados", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 SaveFileDialog sfd = new SaveFileDialog
                 {
                     Filter = "Archivos CSV (*.csv)|*.csv",
@@ -347,6 +477,11 @@ namespace KIOSKO_Proyecto
             }
             catch (Exception ex)
             {
+                MessageBox.Show("Error al generar el corte de caja: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnExportarCortePDF_Click(object sender, EventArgs e)
                 MessageBox.Show("Error al generar el reporte de ventas: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -380,8 +515,12 @@ namespace KIOSKO_Proyecto
 
         private void BtnGenerarCorte_Click(object sender, EventArgs e)
         {
-            try
+            var data = dgvCorteCaja.Tag as CorteCaja;
+            if (data == null || data.Ventas.Count == 0)
             {
+                MessageBox.Show("No hay datos para exportar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
                 var corteData = _reporteBLL.GenerarCorteCajaDiario(dtpFechaCorte.Value);
                 dgvCorteCaja.DataSource = corteData.Ventas;
                 dgvCorteCaja.Tag = corteData; // Guardar todo el objeto para el PDF
@@ -429,6 +568,8 @@ namespace KIOSKO_Proyecto
                     {
                         MessageBox.Show("Error al exportar a PDF: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
+                }
+            }
                 }
             }
         }

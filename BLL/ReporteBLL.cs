@@ -25,6 +25,20 @@ namespace KIOSKO_Proyecto.BLL
         }
 
         public void ExportarVentasDetalladasCSV(List<VentaDetalladaReporte> data, string filePath)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("VentaID,FechaVenta,NombreEmpleado,NombreProducto,Cantidad,PrecioUnitario,Subtotal,TotalVenta,MetodoPago");
+
+            foreach (var item in data)
+            {
+                sb.AppendLine($"{item.VentaID},{item.FechaVenta:g},\"{item.NombreEmpleado}\",\"{item.NombreProducto}\",{item.Cantidad},{item.PrecioUnitario},{item.Subtotal},{item.TotalVenta},\"{item.MetodoPago}\"");
+            }
+            File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+        }
+
+        public void ExportarCorteCajaPDF(CorteCaja corte, string filePath)
+        {
+            var doc = new Document(PageSize.A4);
         public List<VentaDetalladaReporte> ObtenerVentasDetalladasPorFecha(DateTime fechaInicio, DateTime fechaFin)
         {
             return _reporteDAL.ObtenerVentasDetalladasPorFecha(fechaInicio, fechaFin);

@@ -93,6 +93,51 @@ namespace KIOSKO_Proyecto.Datos
             corte.TotalTarjeta = corte.Ventas.Sum(v => v.MontoTarjeta ?? 0);
 
             return corte;
+                }
+            }
+            return list;
+        }
+
+        public CorteCaja ObtenerCorteCajaPorFecha(DateTime fecha)
+        {
+            var corte = new CorteCaja { Fecha = fecha.Date };
+            string query = @"
+                SELECT
+                    V.ID_VENTA, V.FECHA, V.TOTAL,
+                    V.MontoEfectivo, V.MontoTarjeta, E.NOMBRE_EMP
+                FROM VENTA V
+                JOIN EMPLEADO E ON V.ID_EMPLEADO = E.ID_EMPLEADO
+                WHERE CAST(V.FECHA AS DATE) = @fecha;";
+
+            using (var conn = Conexion.ObtenerConexion())
+            {
+                conn.Open();
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@fecha", fecha.Date);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            corte.Ventas.Add(new Venta
+                            {
+                                VentaID = reader.GetInt32(0),
+                                FechaVenta = reader.GetDateTime(1),
+                                TotalVenta = reader.GetDecimal(2),
+                                MontoEfectivo = reader.IsDBNull(3) ? (decimal?)null : reader.GetDecimal(3),
+                                MontoTarjeta = reader.IsDBNull(4) ? (decimal?)null : reader.GetDecimal(4),
+                                NombreEmpleado = reader.GetString(5)
+                            });
+                        }
+                    }
+                }
+            }
+
+            corte.TotalDia = corte.Ventas.Sum(v => v.TotalVenta);
+            corte.TotalEfectivo = corte.Ventas.Sum(v => v.MontoEfectivo ?? 0);
+            corte.TotalTarjeta = corte.Ventas.Sum(v => v.MontoTarjeta ?? 0);
+
+            return corte;
         }
 
         public List<VentaDetalladaReporte> ObtenerVentasDetalladasPorFecha(DateTime fechaInicio, DateTime fechaFin)
