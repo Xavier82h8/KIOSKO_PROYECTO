@@ -19,6 +19,7 @@ namespace KIOSKO_Proyecto.Datos
                         i.ID_PRODUCTO,
                         p.NOMBRE as NombreProducto,
                         i.CANTIDAD,
+                        i.TOTAL_PRODUCTOS,
                         i.FECHA_REGISTRO, 
                         i.OBSERVACIONES, 
                         i.PROVEEDOR 
@@ -38,6 +39,7 @@ namespace KIOSKO_Proyecto.Datos
                                 IdProducto = reader.GetInt32(reader.GetOrdinal("ID_PRODUCTO")),
                                 NombreProducto = reader.GetString(reader.GetOrdinal("NombreProducto")),
                                 Cantidad = reader.GetInt32(reader.GetOrdinal("CANTIDAD")),
+                                Cantidad = reader.GetInt32(reader.GetOrdinal("TOTAL_PRODUCTOS")),
                                 FechaRegistro = reader.GetDateTime(reader.GetOrdinal("FECHA_REGISTRO")),
                                 Observaciones = reader.IsDBNull(reader.GetOrdinal("OBSERVACIONES")) ? "" : reader.GetString(reader.GetOrdinal("OBSERVACIONES")),
                                 Proveedor = reader.IsDBNull(reader.GetOrdinal("PROVEEDOR")) ? "" : reader.GetString(reader.GetOrdinal("PROVEEDOR"))
@@ -77,6 +79,7 @@ namespace KIOSKO_Proyecto.Datos
                         // 2. Insertar el registro en la tabla de inventario
                         string queryInventario = @"
                             INSERT INTO INVENTARIO (ID_PRODUCTO, CANTIDAD, FECHA_REGISTRO, OBSERVACIONES, PROVEEDOR)
+                            INSERT INTO INVENTARIO (ID_PRODUCTO, TOTAL_PRODUCTOS, FECHA_REGISTRO, OBSERVACIONES, PROVEEDOR) 
                             VALUES (@IdProducto, @Cantidad, @FechaRegistro, @Observaciones, @Proveedor)";
 
                         using (var inventarioCmd = new SqlCommand(queryInventario, conn, transaction))
