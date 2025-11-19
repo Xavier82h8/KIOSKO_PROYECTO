@@ -12,5 +12,7 @@ namespace KIOSKO_Proyecto.Modelos
         public decimal PrecioUnitario { get; set; }
         public decimal Subtotal { get; set; }
         public string MetodoPago { get; set; }
+        public decimal? MontoEfectivo { get; set; }
+        public decimal? MontoTarjeta { get; set; }
     }
 }

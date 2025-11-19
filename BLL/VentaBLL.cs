@@ -14,10 +14,10 @@ namespace KIOSKO_Proyecto.BLL
         private VentaDAL _ventaDAL = new VentaDAL();
         private ProductoBLL _productoBLL = new ProductoBLL(); // Para obtener nombres de productos
 
-        public bool RegistrarVenta(Venta venta)
+        public Venta RegistrarVenta(Venta venta)
         {
-            if (venta == null || !venta.Detalles.Any()) return false;
-            if (venta.TotalVenta < 0) return false; // Permitir ventas de 0 si hay promos
+            if (venta == null || !venta.Detalles.Any()) return null;
+            if (venta.TotalVenta < 0) return null; // Permitir ventas de 0 si hay promos
             if (venta.FechaVenta == default(DateTime)) venta.FechaVenta = DateTime.Now;
             return _ventaDAL.CrearVenta(venta);
         }
@@ -91,6 +91,9 @@ namespace KIOSKO_Proyecto.BLL
                 doc.Add(new Paragraph($"Pagado (Tarjeta): {venta.MontoTarjeta.Value:C2}", fontNormal) { Alignment = Element.ALIGN_RIGHT });
             if (venta.Cambio.HasValue && venta.Cambio > 0)
                 doc.Add(new Paragraph($"Cambio: {venta.Cambio.Value:C2}", fontNormal) { Alignment = Element.ALIGN_RIGHT });
+
+            if (!string.IsNullOrEmpty(venta.MetodoPago))
+                doc.Add(new Paragraph($"Método de Pago: {venta.MetodoPago}", fontNormal) { Alignment = Element.ALIGN_RIGHT });
 
             // Pie de página
             doc.Add(Chunk.NEWLINE);

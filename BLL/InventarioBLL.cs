@@ -8,9 +8,18 @@ namespace KIOSKO_Proyecto.BLL
     {
         private InventarioDAL _inventarioDAL = new InventarioDAL();
 
-        public List<Inventario> ObtenerInventario()
+        public List<Inventario> ObtenerHistorialInventario()
         {
-            return _inventarioDAL.ObtenerInventario();
+            return _inventarioDAL.ObtenerHistorialInventario();
+        }
+
+        public bool RegistrarEntrada(Inventario registro)
+        {
+            if (registro == null || registro.IdProducto <= 0 || registro.TotalProductos <= 0)
+            {
+                return false;
+            }
+            return _inventarioDAL.RegistrarEntrada(registro);
         }
     }
 }

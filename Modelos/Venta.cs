@@ -11,6 +11,7 @@ namespace KIOSKO_Proyecto.Modelos
         public decimal? MontoEfectivo { get; set; }
         public decimal? MontoTarjeta { get; set; }
         public decimal? Cambio { get; set; }
+        public string MetodoPago { get; set; }
         public int EmpleadoID { get; set; }
 
         // Propiedad de navegación para los detalles

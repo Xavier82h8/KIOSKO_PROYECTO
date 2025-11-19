@@ -16,10 +16,12 @@ namespace KIOSKO_Proyecto
         private DateTimePicker dtpHasta;
         private Button btnGenerar;
         private Button btnExportarCSV;
+        private Button btnGenerarCortePdf;
         private Label lblTotalVentas;
         private DataGridView dgvReporte;
         
         private VentaBLL _ventaBLL = new VentaBLL();
+        private ReporteBLL _reporteBLL = new ReporteBLL();
         private List<VentaDetalladaReporte> _reporteActual; // Store the current report data
 
         public FormReportes(Modelos.Empleado empleado)
@@ -34,6 +36,7 @@ namespace KIOSKO_Proyecto
             dtpHasta = new DateTimePicker { Value = DateTime.Today, Location = new Point(280, 12) };
             btnGenerar = new Button { Text = "Generar Reporte", Location = new Point(500, 10), Width = 120, Height = 25 };
             btnExportarCSV = new Button { Text = "Exportar a CSV", Location = new Point(630, 10), Width = 120, Height = 25, Enabled = false };
+            btnGenerarCortePdf = new Button { Text = "Corte de Caja (PDF)", Location = new Point(760, 10), Width = 150, Height = 25, Enabled = false };
             
             topPanel.Controls.Add(new Label { Text = "Desde:", Location = new Point(10, 15), AutoSize = true });
             topPanel.Controls.Add(dtpDesde);
@@ -41,6 +44,7 @@ namespace KIOSKO_Proyecto
             topPanel.Controls.Add(dtpHasta);
             topPanel.Controls.Add(btnGenerar);
             topPanel.Controls.Add(btnExportarCSV);
+            topPanel.Controls.Add(btnGenerarCortePdf);
             
             // Bottom Panel for total
             var bottomPanel = new Panel { Dock = DockStyle.Bottom, Height = 50, Padding = new Padding(10) };
@@ -67,6 +71,7 @@ namespace KIOSKO_Proyecto
             // Event Handlers
             btnGenerar.Click += BtnGenerar_Click;
             btnExportarCSV.Click += BtnExportarCSV_Click;
+            btnGenerarCortePdf.Click += BtnGenerarCortePdf_Click;
             
             ConfigurarDgvReporte();
         }
@@ -133,11 +138,13 @@ namespace KIOSKO_Proyecto
                 decimal total = _reporteActual.Sum(item => item.Subtotal);
                 lblTotalVentas.Text = $"Total ventas: {total:C2}";
                 btnExportarCSV.Enabled = true;
+                btnGenerarCortePdf.Enabled = true;
             }
             else
             {
                 lblTotalVentas.Text = "Total ventas: $0.00";
                 btnExportarCSV.Enabled = false;
+                btnGenerarCortePdf.Enabled = false;
                 MessageBox.Show("No se encontraron ventas para el rango de fechas seleccionado.", "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
@@ -187,6 +194,34 @@ namespace KIOSKO_Proyecto
                 catch (Exception ex)
                 {
                     MessageBox.Show($"Error al exportar a CSV: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void BtnGenerarCortePdf_Click(object sender, EventArgs e)
+        {
+            if (_reporteActual == null || !_reporteActual.Any())
+            {
+                MessageBox.Show("Primero debe generar un reporte.", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            SaveFileDialog sfd = new SaveFileDialog
+            {
+                Filter = "Archivo PDF (*.pdf)|*.pdf",
+                FileName = $"Corte_De_Caja_{DateTime.Now:yyyyMMdd}.pdf"
+            };
+
+            if (sfd.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    _reporteBLL.GenerarCorteDeCajaPdf(_reporteActual, dtpDesde.Value, dtpHasta.Value, sfd.FileName);
+                    MessageBox.Show("Reporte 'Corte de Caja' exportado exitosamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error al generar el PDF: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using KIOSKO_Proyecto.Modelos;
@@ -6,31 +7,96 @@ namespace KIOSKO_Proyecto.Datos
 {
     public class InventarioDAL
     {
-        public List<Inventario> ObtenerInventario()
+        public List<Inventario> ObtenerHistorialInventario()
         {
-            var inventario = new List<Inventario>();
+            var historial = new List<Inventario>();
             using (var conn = Conexion.ObtenerConexion())
             {
                 conn.Open();
-                using (var cmd = new SqlCommand("SELECT ID_INVENTARIO, FECHA_REGISTRO, TOTAL_PRODUCTOS, OBSERVACIONES, PROVEEDOR FROM INVENTARIO", conn))
+                string query = @"
+                    SELECT 
+                        i.ID_INVENTARIO, 
+                        i.ID_PRODUCTO,
+                        i.TOTAL_PRODUCTOS,
+                        i.FECHA_REGISTRO, 
+                        i.OBSERVACIONES, 
+                        i.PROVEEDOR 
+                    FROM INVENTARIO i
+                    ORDER BY i.FECHA_REGISTRO DESC";
+
+                using (var cmd = new SqlCommand(query, conn))
                 {
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
                         {
-                            inventario.Add(new Inventario
+                            historial.Add(new Inventario
                             {
-                                IdInventario = reader.GetInt32(0),
-                                FechaRegistro = reader.GetDateTime(1),
-                                TotalProductos = reader.GetInt32(2),
-                                Observaciones = reader.GetString(3),
-                                Proveedor = reader.GetString(4)
+                                IdInventario = reader.GetInt32(reader.GetOrdinal("ID_INVENTARIO")),
+                                IdProducto = reader.GetInt32(reader.GetOrdinal("ID_PRODUCTO")),
+                                TotalProductos = reader.GetInt32(reader.GetOrdinal("TOTAL_PRODUCTOS")),
+                                FechaRegistro = reader.GetDateTime(reader.GetOrdinal("FECHA_REGISTRO")),
+                                Observaciones = reader.IsDBNull(reader.GetOrdinal("OBSERVACIONES")) ? "" : reader.GetString(reader.GetOrdinal("OBSERVACIONES")),
+                                Proveedor = reader.IsDBNull(reader.GetOrdinal("PROVEEDOR")) ? "" : reader.GetString(reader.GetOrdinal("PROVEEDOR"))
                             });
                         }
                     }
                 }
             }
-            return inventario;
+            return historial;
+        }
+
+        public bool RegistrarEntrada(Inventario registro)
+        {
+            using (var conn = Conexion.ObtenerConexion())
+            {
+                conn.Open();
+                using (SqlTransaction transaction = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        // 1. Actualizar el stock del producto
+                        string queryStock = @"
+                            UPDATE PRODUCTO SET CANTIDAD_DISPONIBLE = CANTIDAD_DISPONIBLE + @TotalProductos 
+                            WHERE ID_PRODUCTO = @IdProducto";
+
+                        using (var stockCmd = new SqlCommand(queryStock, conn, transaction))
+                        {
+                            stockCmd.Parameters.AddWithValue("@TotalProductos", registro.TotalProductos);
+                            stockCmd.Parameters.AddWithValue("@IdProducto", registro.IdProducto);
+                            int rowsAffected = stockCmd.ExecuteNonQuery();
+                            if (rowsAffected == 0)
+                            {
+                                throw new Exception("El producto no fue encontrado, no se pudo actualizar el stock.");
+                            }
+                        }
+
+                        // 2. Insertar el registro en la tabla de inventario
+                        string queryInventario = @"
+                            INSERT INTO INVENTARIO (ID_PRODUCTO, TOTAL_PRODUCTOS, FECHA_REGISTRO, OBSERVACIONES, PROVEEDOR) 
+                            VALUES (@IdProducto, @TotalProductos, @FechaRegistro, @Observaciones, @Proveedor)";
+
+                        using (var inventarioCmd = new SqlCommand(queryInventario, conn, transaction))
+                        {
+                            inventarioCmd.Parameters.AddWithValue("@IdProducto", registro.IdProducto);
+                            inventarioCmd.Parameters.AddWithValue("@TotalProductos", registro.TotalProductos);
+                            inventarioCmd.Parameters.AddWithValue("@FechaRegistro", registro.FechaRegistro);
+                            inventarioCmd.Parameters.AddWithValue("@Observaciones", (object)registro.Observaciones ?? DBNull.Value);
+                            inventarioCmd.Parameters.AddWithValue("@Proveedor", (object)registro.Proveedor ?? DBNull.Value);
+                            inventarioCmd.ExecuteNonQuery();
+                        }
+
+                        transaction.Commit();
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        transaction.Rollback();
+                        System.Diagnostics.Debug.WriteLine($"Error al registrar entrada de inventario: {ex.Message}");
+                        return false;
+                    }
+                }
+            }
         }
     }
 }

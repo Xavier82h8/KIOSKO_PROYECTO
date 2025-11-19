@@ -11,8 +11,8 @@ namespace KIOSKO_Proyecto.Datos
         /// Guarda una venta completa, sus detalles y actualiza el stock en una transacción.
         /// </summary>
         /// <param name="venta">Objeto Venta con todos los datos a guardar.</param>
-        /// <returns>True si la venta se completó con éxito, false en caso contrario.</returns>
-        public bool CrearVenta(Venta venta)
+        /// <returns>El objeto Venta con su ID asignado si la transacción tuvo éxito; de lo contrario, null.</returns>
+        public Venta CrearVenta(Venta venta)
         {
             using (var conn = Conexion.ObtenerConexion())
             {
@@ -23,9 +23,9 @@ namespace KIOSKO_Proyecto.Datos
                     {
                         // 1. Insertar la venta principal y obtener el ID
                         string queryVenta = @"
-                            INSERT INTO VENTA (FECHA, HORA, ID_EMPLEADO, TOTAL, MontoEfectivo, MontoTarjeta, Cambio) 
+                            INSERT INTO VENTA (FECHA, HORA, ID_EMPLEADO, TOTAL, MontoEfectivo, MontoTarjeta, Cambio, METODO_PAGO) 
                             OUTPUT INSERTED.ID_VENTA 
-                            VALUES (@Fecha, @Hora, @IdEmpleado, @Total, @MontoEfectivo, @MontoTarjeta, @Cambio)";
+                            VALUES (@Fecha, @Hora, @IdEmpleado, @Total, @MontoEfectivo, @MontoTarjeta, @Cambio, @MetodoPago)";
 
                         int ventaId;
                         using (var ventaCmd = new SqlCommand(queryVenta, conn, transaction))
@@ -37,8 +37,10 @@ namespace KIOSKO_Proyecto.Datos
                             ventaCmd.Parameters.AddWithValue("@MontoEfectivo", (object)venta.MontoEfectivo ?? DBNull.Value);
                             ventaCmd.Parameters.AddWithValue("@MontoTarjeta", (object)venta.MontoTarjeta ?? DBNull.Value);
                             ventaCmd.Parameters.AddWithValue("@Cambio", (object)venta.Cambio ?? DBNull.Value);
+                            ventaCmd.Parameters.AddWithValue("@MetodoPago", (object)venta.MetodoPago ?? DBNull.Value);
 
                             ventaId = (int)ventaCmd.ExecuteScalar();
+                            venta.VentaID = ventaId; // Asignar el nuevo ID al objeto
                         }
 
                         // 2. Insertar los detalles de la venta
@@ -75,14 +77,14 @@ namespace KIOSKO_Proyecto.Datos
                         }
 
                         transaction.Commit();
-                        return true;
+                        return venta; // Devolver el objeto Venta completo
                     }
                     catch (Exception ex)
                     {
                         // Si algo falla, revertir toda la transacción
                         transaction.Rollback();
                         System.Diagnostics.Debug.WriteLine($"Error al crear la venta: {ex.Message}");
-                        return false;
+                        return null; // Devolver null en caso de error
                     }
                 }
             }
@@ -96,7 +98,7 @@ namespace KIOSKO_Proyecto.Datos
             {
                 conn.Open();
                 string query = @"
-                    SELECT V.ID_VENTA, V.FECHA, V.HORA, V.ID_EMPLEADO, V.TOTAL, V.MontoEfectivo, V.MontoTarjeta, V.Cambio
+                    SELECT V.ID_VENTA, V.FECHA, V.HORA, V.ID_EMPLEADO, V.TOTAL, V.MontoEfectivo, V.MontoTarjeta, V.Cambio, V.METODO_PAGO
                     FROM VENTA V
                     WHERE V.FECHA >= @desde AND V.FECHA <= @hasta 
                     ORDER BY V.FECHA DESC, V.HORA DESC";
@@ -118,6 +120,7 @@ namespace KIOSKO_Proyecto.Datos
                                 MontoEfectivo = reader.IsDBNull(reader.GetOrdinal("MontoEfectivo")) ? (decimal?)null : reader.GetDecimal(reader.GetOrdinal("MontoEfectivo")),
                                 MontoTarjeta = reader.IsDBNull(reader.GetOrdinal("MontoTarjeta")) ? (decimal?)null : reader.GetDecimal(reader.GetOrdinal("MontoTarjeta")),
                                 Cambio = reader.IsDBNull(reader.GetOrdinal("Cambio")) ? (decimal?)null : reader.GetDecimal(reader.GetOrdinal("Cambio")),
+                                MetodoPago = reader.IsDBNull(reader.GetOrdinal("METODO_PAGO")) ? null : reader.GetString(reader.GetOrdinal("METODO_PAGO")),
                                 Detalles = new List<DetalleVenta>()
                             };
                             lista.Add(v);
@@ -179,7 +182,8 @@ namespace KIOSKO_Proyecto.Datos
                         DV.PRECIO_UNITARIO,
                         DV.SUBTOTAL,
                         V.MontoEfectivo,
-                        V.MontoTarjeta
+                        V.MontoTarjeta,
+                        V.METODO_PAGO
                     FROM VENTA V
                     INNER JOIN DETALLE_VENTA DV ON V.ID_VENTA = DV.ID_VENTA
                     INNER JOIN EMPLEADO E ON V.ID_EMPLEADO = E.ID_EMPLEADO
@@ -196,13 +200,7 @@ namespace KIOSKO_Proyecto.Datos
                     {
                         while (reader.Read())
                         {
-                            string metodoPago = "N/A";
-                            bool tieneEfectivo = !reader.IsDBNull(reader.GetOrdinal("MontoEfectivo")) && reader.GetDecimal(reader.GetOrdinal("MontoEfectivo")) > 0;
-                            bool tieneTarjeta = !reader.IsDBNull(reader.GetOrdinal("MontoTarjeta")) && reader.GetDecimal(reader.GetOrdinal("MontoTarjeta")) > 0;
-
-                            if (tieneEfectivo && tieneTarjeta) metodoPago = "Mixto";
-                            else if (tieneEfectivo) metodoPago = "Efectivo";
-                            else if (tieneTarjeta) metodoPago = "Tarjeta";
+                            string metodoPago = reader.IsDBNull(reader.GetOrdinal("METODO_PAGO")) ? "N/A" : reader.GetString(reader.GetOrdinal("METODO_PAGO"));
 
                             var reporte = new VentaDetalladaReporte
                             {
@@ -213,7 +211,9 @@ namespace KIOSKO_Proyecto.Datos
                                 Cantidad = reader.GetInt32(reader.GetOrdinal("CANTIDAD")),
                                 PrecioUnitario = reader.GetDecimal(reader.GetOrdinal("PRECIO_UNITARIO")),
                                 Subtotal = reader.GetDecimal(reader.GetOrdinal("SUBTOTAL")),
-                                MetodoPago = metodoPago
+                                MetodoPago = metodoPago,
+                                MontoEfectivo = reader.IsDBNull(reader.GetOrdinal("MontoEfectivo")) ? (decimal?)null : reader.GetDecimal(reader.GetOrdinal("MontoEfectivo")),
+                                MontoTarjeta = reader.IsDBNull(reader.GetOrdinal("MontoTarjeta")) ? (decimal?)null : reader.GetDecimal(reader.GetOrdinal("MontoTarjeta"))
                             };
                             lista.Add(reporte);
                         }

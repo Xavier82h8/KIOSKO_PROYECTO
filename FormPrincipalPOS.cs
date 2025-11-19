@@ -26,7 +26,8 @@ namespace KIOSKO_Proyecto
         private ComboBox cmbCategoria;
         private Label lblTotal;
         private Label lblEmpleado;
-        private Button btnInventario;
+        private Button btnProductos;
+        private Button btnGestionInventario;
         private Button btnDetalleVentas;
         private Button btnVerReportes;
         private Button btnCerrarSesion;
@@ -107,10 +108,11 @@ namespace KIOSKO_Proyecto
             panel.Controls.Add(cmbCategoria);
 
             var flowBotones = new FlowLayoutPanel { Location = new Point(850, 15), AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false };
-            btnInventario = new Button { Text = "📦 Inventario", Width = 130, Height = 45, BackColor = Color.FromArgb(91, 192, 222), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
+            btnProductos = new Button { Text = "📦 Productos", Width = 130, Height = 45, BackColor = Color.FromArgb(91, 192, 222), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
+            btnGestionInventario = new Button { Text = "📥 Inventario", Width = 130, Height = 45, BackColor = Color.FromArgb(240, 173, 78), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
             btnDetalleVentas = new Button { Text = "📖 Historial", Width = 130, Height = 45, BackColor = Color.FromArgb(91, 192, 222), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
             btnVerReportes = new Button { Text = "📈 Reportes", Width = 130, Height = 45, BackColor = Color.FromArgb(45, 140, 200), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(5, 0, 5, 0) };
-            flowBotones.Controls.AddRange(new Control[] { btnInventario, btnDetalleVentas, btnVerReportes });
+            flowBotones.Controls.AddRange(new Control[] { btnProductos, btnGestionInventario, btnDetalleVentas, btnVerReportes });
             panel.Controls.Add(flowBotones);
 
             return panel;
@@ -245,7 +247,8 @@ namespace KIOSKO_Proyecto
             dgvCarrito.CellValueChanged += DgvCarrito_CellValueChanged;
             btnEliminar.Click += BtnEliminar_Click;
             btnLimpiar.Click += BtnLimpiar_Click;
-            btnInventario.Click += BtnInventario_Click;
+            btnProductos.Click += BtnProductos_Click;
+            btnGestionInventario.Click += BtnGestionInventario_Click;
             btnDetalleVentas.Click += BtnDetalleVentas_Click;
             btnVerReportes.Click += BtnVerReportes_Click;
             btnCerrarSesion.Click += BtnCerrarSesion_Click;
@@ -263,7 +266,8 @@ namespace KIOSKO_Proyecto
             bool esAdmin = puesto.Equals("Administrador", StringComparison.OrdinalIgnoreCase);
             bool esGerente = puesto.Equals("Gerente", StringComparison.OrdinalIgnoreCase);
             bool esSupervisor = puesto.Equals("Supervisor", StringComparison.OrdinalIgnoreCase) || puesto.Equals("Supervisora", StringComparison.OrdinalIgnoreCase);
-            btnInventario.Visible = esAdmin || esGerente || esSupervisor;
+            btnProductos.Visible = esAdmin || esGerente || esSupervisor;
+            btnGestionInventario.Visible = esAdmin || esGerente || esSupervisor;
             btnDetalleVentas.Visible = !puesto.Equals("Cajero", StringComparison.OrdinalIgnoreCase);
             btnVerReportes.Visible = esAdmin || esGerente || esSupervisor;
         }
@@ -460,11 +464,36 @@ namespace KIOSKO_Proyecto
                 Detalles = this.carrito
             };
 
-            bool exito = ventaBLL.RegistrarVenta(venta);
+            Venta ventaRegistrada = ventaBLL.RegistrarVenta(venta);
 
-            if (exito)
+            if (ventaRegistrada != null)
             {
-                MessageBox.Show($"Venta registrada con éxito.\nTotal: {totalVenta:C2}\nCambio: {cambio:C2}", "Venta Completada", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"Venta registrada con éxito.\nTotal: {ventaRegistrada.TotalVenta:C2}\nCambio: {ventaRegistrada.Cambio:C2}", "Venta Completada", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                // Preguntar si se desea generar el ticket
+                if (MessageBox.Show("¿Desea generar el ticket de venta?", "Generar Ticket", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    using (var saveFileDialog = new SaveFileDialog())
+                    {
+                        saveFileDialog.Filter = "Archivo PDF (*.pdf)|*.pdf";
+                        saveFileDialog.Title = "Guardar Ticket de Venta";
+                        saveFileDialog.FileName = $"Ticket_Venta_{ventaRegistrada.VentaID}.pdf";
+
+                        if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                        {
+                            try
+                            {
+                                ventaBLL.ExportarTicketPDF(ventaRegistrada, saveFileDialog.FileName);
+                                MessageBox.Show($"Ticket guardado exitosamente en:\n{saveFileDialog.FileName}", "Ticket Guardado", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"Ocurrió un error al guardar el ticket: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            }
+                        }
+                    }
+                }
+
                 LimpiarVenta();
                 CargarProductos(); // Recargar productos para actualizar stock
             }
@@ -533,7 +562,8 @@ namespace KIOSKO_Proyecto
 
         // --- FIN NUEVA LÓGICA DE PAGO ---
 
-        private void BtnInventario_Click(object sender, EventArgs e) { using (var formInventario = new FormInventario()) { formInventario.ShowDialog(this); } CargarProductos(); }
+        private void BtnProductos_Click(object sender, EventArgs e) { using (var formInventario = new FormInventario()) { formInventario.ShowDialog(this); } CargarProductos(); }
+        private void BtnGestionInventario_Click(object sender, EventArgs e) { using (var formGestionInventario = new FormGestionInventario()) { formGestionInventario.ShowDialog(this); } CargarProductos(); }
         private void BtnDetalleVentas_Click(object sender, EventArgs e) { using (var formHistorial = new FormHistorialVentas()) { formHistorial.ShowDialog(this); } }
         private void BtnVerReportes_Click(object sender, EventArgs e) { using (var formVerReportes = new FormVerReportes()) { formVerReportes.ShowDialog(this); } }
         private void BtnCerrarSesion_Click(object sender, EventArgs e)
