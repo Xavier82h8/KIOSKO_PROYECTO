@@ -72,6 +72,3 @@ Esta sección se enfoca en verificar que el nuevo módulo de reportes y los camb
      6. Guarda el archivo en tu computadora.
      7. **Resultado esperado:** El sistema confirmará la exportación. Abre el archivo PDF. Debe contener un reporte bien formateado con el resumen de totales y la lista de ventas del día.
 
----
-
-Si encuentras algún problema durante estas pruebas o si algo no funciona como se describe, por favor, avísame con los detalles de lo que ocurrió. ¡Gracias!
