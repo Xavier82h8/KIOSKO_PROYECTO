@@ -124,6 +124,17 @@ namespace KIOSKO_Proyecto
 
             // Contenedor para Usuario
             var panelUsuario = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, AutoSize = true, Anchor = AnchorStyles.Top | AnchorStyles.Right, Margin = new Padding(10, 10, 0, 0) };
+            lblEmpleado = new Label { Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = Color.FromArgb(45, 140, 200), TextAlign = ContentAlignment.MiddleLeft, AutoSize = true, Margin = new Padding(0, 5, 10, 0) };
+            btnCerrarSesion = new Button { Text = "Cerrar sesión", Font = new Font("Segoe UI", 9), FlatStyle = FlatStyle.Flat, AutoSize = true, Cursor = Cursors.Hand };
+            btnCerrarSesion.FlatAppearance.BorderSize = 0;
+            panelUsuario.Controls.Add(lblEmpleado);
+            panelUsuario.Controls.Add(btnCerrarSesion);
+            panelDerecho.Controls.Add(panelUsuario);
+
+
+            // Contenedor para Búsqueda
+            cmbCategoria = new ComboBox { Width = 160, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 11), FlatStyle = FlatStyle.Flat, Margin = new Padding(10, 12, 0, 0) };
+            
             lblEmpleado = new Label { Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = Color.FromArgb(45, 140, 200), TextAlign = ContentAlignment.MiddleLeft, AutoSize = true, Margin = new Padding(0, 5, 10, 0), Cursor = Cursors.Hand };
             panelUsuario.Controls.Add(lblEmpleado);
             panelDerecho.Controls.Add(panelUsuario);
@@ -589,6 +600,9 @@ namespace KIOSKO_Proyecto
 
         // --- FIN NUEVA LÓGICA DE PAGO ---
 
+        private void BtnProductos_Click(object sender, EventArgs e) { using (var formInventario = new FormInventario()) { formInventario.ShowDialog(this); } CargarProductos(); }
+        private void BtnGestionInventario_Click(object sender, EventArgs e) { using (var formGestionInventario = new FormGestionInventario()) { formGestionInventario.ShowDialog(this); } CargarProductos(); }
+        private void BtnVerReportes_Click(object sender, EventArgs e) { using (var formVerReportes = new FormVerReportes(_empleadoAutenticado)) { formVerReportes.ShowDialog(this); } }
         private void BtnProductos_Click(object sender, EventArgs e) 
         { 
             using (var formInventario = new FormInventario()) 
@@ -634,6 +648,22 @@ namespace KIOSKO_Proyecto
                 this.DialogResult = DialogResult.Retry; 
                 this.Close(); 
             }
+        }
+
+        private Button CrearBotonModulo(string texto, Color color)
+        {
+            return new Button
+            {
+                Text = texto,
+                Width = 140,
+                Height = 45,
+                BackColor = color,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand,
+                Margin = new Padding(5, 0, 5, 0)
+            };
         }
 
         private Button CrearBotonModulo(string texto, Color color)
