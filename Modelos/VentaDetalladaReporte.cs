@@ -12,6 +12,8 @@ namespace KIOSKO_Proyecto.Modelos
         public decimal Subtotal { get; set; }
         public decimal TotalVenta { get; set; }
         public string MetodoPago { get; set; }
-        public string NombreEmpleado { get; set; }
+        
+        // Es vital mantener esta propiedad porque se usa en el reporte CSV
+        public string NombreEmpleado { get; set; } 
     }
 }

@@ -1,14 +1,15 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using KIOSKO_Proyecto.Modelos;
-using KIOSKO_Proyecto.Datos;
 
 namespace KIOSKO_Proyecto.Datos
 {
     public class ReporteDAL
     {
+        // 1. Obtener lista para reporte detallado (CSV)
         public List<VentaDetalladaReporte> ObtenerVentasDetalladasPorFecha(DateTime fechaInicio, DateTime fechaFin)
         {
             var list = new List<VentaDetalladaReporte>();
@@ -31,6 +32,7 @@ namespace KIOSKO_Proyecto.Datos
                 {
                     cmd.Parameters.AddWithValue("@fechaInicio", fechaInicio);
                     cmd.Parameters.AddWithValue("@fechaFin", fechaFin);
+                    
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
@@ -50,42 +52,19 @@ namespace KIOSKO_Proyecto.Datos
                         }
                     }
                 }
-        // Ventas detalladas entre fechas
-        public DataTable ObtenerVentasDetalladas(DateTime desde, DateTime hasta)
-        {
-            string query = @"
-                SELECT 
-                    v.VentaID,
-                    v.FechaVenta,
-                    e.Nombre + ' ' + e.Apellido AS NombreEmpleado,
-                    p.NombreProducto,
-                    dv.Cantidad,
-                    dv.PrecioUnitario,
-                    dv.Subtotal
-                FROM Ventas v
-                INNER JOIN DetalleVenta dv ON v.VentaID = dv.VentaID
-                INNER JOIN Producto p ON dv.ProductoID = p.ProductoID
-                INNER JOIN Empleado e ON v.EmpleadoID = e.EmpleadoID
-                WHERE CAST(v.FechaVenta AS DATE) BETWEEN @desde AND @hasta
-                ORDER BY v.FechaVenta DESC";
-
-            using (SqlConnection con = Conexion.ObtenerConexion())
-            {
-                SqlCommand cmd = new SqlCommand(query, con);
-                cmd.Parameters.AddWithValue("@desde", desde.Date);
-                cmd.Parameters.AddWithValue("@hasta", hasta.Date);
-
-                DataTable dt = new DataTable();
-                con.Open();
-                dt.Load(cmd.ExecuteReader());
-                return dt;
             }
             return list;
         }
 
+        // 2. Obtener datos calculados del sistema (para pre-corte)
         public CorteCaja ObtenerCorteCajaPorFecha(DateTime fecha)
         {
-            var corte = new CorteCaja { Fecha = fecha.Date };
+            var corte = new CorteCaja 
+            { 
+                Fecha = fecha.Date,
+                Ventas = new List<Venta>() 
+            };
+
             string query = @"
                 SELECT
                     V.ID_VENTA, V.FECHA, V.TOTAL,
@@ -100,6 +79,7 @@ namespace KIOSKO_Proyecto.Datos
                 using (var cmd = new SqlCommand(query, conn))
                 {
                     cmd.Parameters.AddWithValue("@fecha", fecha.Date);
+                    
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
@@ -114,67 +94,46 @@ namespace KIOSKO_Proyecto.Datos
                                 NombreEmpleado = reader.GetString(5)
                             });
                         }
-        // Corte de caja de un día
-        public DataTable ObtenerCorteCajaDiario(DateTime fecha)
-        {
-            string query = @"
-                SELECT 
-                    v.VentaID,
-                    v.FechaVenta,
-                    e.Nombre + ' ' + e.Apellido AS Cajero,
-                    v.Total,
-                    v.MetodoPago
-                FROM Ventas v
-                INNER JOIN Empleado e ON v.EmpleadoID = e.EmpleadoID
-                WHERE CAST(v.FechaVenta AS DATE) = @fecha
-                ORDER BY v.FechaVenta";
-
-            using (SqlConnection con = Conexion.ObtenerConexion())
-            {
-                SqlCommand cmd = new SqlCommand(query, con);
-                cmd.Parameters.AddWithValue("@fecha", fecha.Date);
-
-                DataTable dt = new DataTable();
-                con.Open();
-                dt.Load(cmd.ExecuteReader());
-                return dt;
-            }
-        }
-
-        // Totales del día
-        public (decimal totalEfectivo, decimal totalTarjeta, decimal granTotal) ObtenerTotalesDia(DateTime fecha)
-        {
-            string query = @"
-                SELECT 
-                    SUM(CASE WHEN MetodoPago = 'Efectivo' THEN Total ELSE 0 END) AS Efectivo,
-                    SUM(CASE WHEN MetodoPago = 'Tarjeta'  THEN Total ELSE 0 END) AS Tarjeta,
-                    SUM(Total) AS GranTotal
-                FROM Ventas
-                WHERE CAST(FechaVenta AS DATE) = @fecha";
-
-            using (SqlConnection con = Conexion.ObtenerConexion())
-            {
-                SqlCommand cmd = new SqlCommand(query, con);
-                cmd.Parameters.AddWithValue("@fecha", fecha.Date);
-                con.Open();
-                using (SqlDataReader reader = cmd.ExecuteReader())
-                {
-                    if (reader.Read())
-                    {
-                        decimal efectivo = reader.IsDBNull(0) ? 0 : reader.GetDecimal(0);
-                        decimal tarjeta = reader.IsDBNull(1) ? 0 : reader.GetDecimal(1);
-                        decimal total = reader.IsDBNull(2) ? 0 : reader.GetDecimal(2);
-                        return (efectivo, tarjeta, total);
                     }
-                    return (0, 0, 0);
                 }
             }
 
-            corte.TotalDia = corte.Ventas.Sum(v => v.TotalVenta);
-            corte.TotalEfectivo = corte.Ventas.Sum(v => v.MontoEfectivo ?? 0);
-            corte.TotalTarjeta = corte.Ventas.Sum(v => v.MontoTarjeta ?? 0);
+            if (corte.Ventas.Any())
+            {
+                corte.TotalDia = corte.Ventas.Sum(v => v.TotalVenta);
+                corte.TotalEfectivo = corte.Ventas.Sum(v => v.MontoEfectivo ?? 0);
+                corte.TotalTarjeta = corte.Ventas.Sum(v => v.MontoTarjeta ?? 0);
+            }
 
             return corte;
+        }
+
+        // 3. NUEVO: Guardar el Arqueo (Corte Final) en la Base de Datos
+        public bool GuardarCorte(HistorialCorte corte)
+        {
+            using (var conn = Conexion.ObtenerConexion())
+            {
+                conn.Open();
+                string query = @"
+                    INSERT INTO HISTORIAL_CORTES 
+                    (ID_EMPLEADO, FECHA_CORTE, TOTAL_SISTEMA, TOTAL_REAL, DIFERENCIA, TOTAL_EFECTIVO, TOTAL_TARJETA, COMENTARIOS)
+                    VALUES 
+                    (@IdEmp, @Fecha, @TotSis, @TotReal, @Dif, @TotEfe, @TotTar, @Com)";
+
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@IdEmp", corte.IdEmpleado);
+                    cmd.Parameters.AddWithValue("@Fecha", corte.FechaCorte);
+                    cmd.Parameters.AddWithValue("@TotSis", corte.TotalSistema);
+                    cmd.Parameters.AddWithValue("@TotReal", corte.TotalReal);
+                    cmd.Parameters.AddWithValue("@Dif", corte.Diferencia);
+                    cmd.Parameters.AddWithValue("@TotEfe", corte.TotalEfectivo);
+                    cmd.Parameters.AddWithValue("@TotTar", corte.TotalTarjeta);
+                    cmd.Parameters.AddWithValue("@Com", (object)corte.Comentarios ?? DBNull.Value);
+
+                    return cmd.ExecuteNonQuery() > 0;
+                }
+            }
         }
     }
 }
