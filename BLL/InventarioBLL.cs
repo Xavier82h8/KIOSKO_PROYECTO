@@ -15,7 +15,7 @@ namespace KIOSKO_Proyecto.BLL
 
         public bool RegistrarEntrada(Inventario registro)
         {
-            if (registro == null || registro.IdProducto <= 0 || registro.TotalProductos <= 0)
+            if (registro == null || registro.IdProducto <= 0 || registro.Cantidad <= 0)
             {
                 return false;
             }
