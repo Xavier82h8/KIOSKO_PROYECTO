@@ -28,9 +28,8 @@ namespace KIOSKO_Proyecto
         private Label lblEmpleado;
         private Button btnProductos;
         private Button btnGestionInventario;
-        private Button btnDetalleVentas;
         private Button btnVerReportes;
-        private Button btnCerrarSesion;
+        private ContextMenuStrip menuUsuario;
         private Label lblItemsCarrito;
         private Button btnEliminar;
         private Button btnLimpiar;
@@ -73,8 +72,16 @@ namespace KIOSKO_Proyecto
             this.Controls.Add(panelProductos);
             this.Controls.Add(panelSuperior);
 
+            CrearMenuUsuario();
             ConfigurarEventos();
             this.ResumeLayout(false);
+        }
+
+        private void CrearMenuUsuario()
+        {
+            menuUsuario = new ContextMenuStrip();
+            var itemCerrarSesion = menuUsuario.Items.Add("Cerrar sesión");
+            itemCerrarSesion.Click += BtnCerrarSesion_Click;
         }
 
         private Panel CrearPanelSuperior()
@@ -124,6 +131,13 @@ namespace KIOSKO_Proyecto
             panelUsuario.Controls.Add(btnCerrarSesion);
             panelDerecho.Controls.Add(panelUsuario);
 
+
+            // Contenedor para Búsqueda
+            cmbCategoria = new ComboBox { Width = 160, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 11), FlatStyle = FlatStyle.Flat, Margin = new Padding(10, 12, 0, 0) };
+            
+            lblEmpleado = new Label { Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = Color.FromArgb(45, 140, 200), TextAlign = ContentAlignment.MiddleLeft, AutoSize = true, Margin = new Padding(0, 5, 10, 0), Cursor = Cursors.Hand };
+            panelUsuario.Controls.Add(lblEmpleado);
+            panelDerecho.Controls.Add(panelUsuario);
 
             // Contenedor para Búsqueda
             cmbCategoria = new ComboBox { Width = 160, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 11), FlatStyle = FlatStyle.Flat, Margin = new Padding(10, 12, 0, 0) };
@@ -276,7 +290,7 @@ namespace KIOSKO_Proyecto
             btnProductos.Click += BtnProductos_Click;
             btnGestionInventario.Click += BtnGestionInventario_Click;
             btnVerReportes.Click += BtnVerReportes_Click;
-            btnCerrarSesion.Click += BtnCerrarSesion_Click;
+            lblEmpleado.Click += LblEmpleado_Click;
 
             // Nuevos eventos
             txtMontoEfectivo.TextChanged += TxtMontoEfectivo_TextChanged;
@@ -385,8 +399,8 @@ namespace KIOSKO_Proyecto
                 if (nuevaCantidad > producto.CantidadDisponible) { MessageBox.Show($"Stock insuficiente. Disponible: {producto.CantidadDisponible}", "Error"); nuevaCantidad = producto.CantidadDisponible; }
                 
                 item.Cantidad = nuevaCantidad;
-                dgvCarrito.Rows[e.RowIndex].Cells["Cantidad"].Value = item.Cantidad; // Forzar actualización visual
-                ActualizarCarrito(); // Recalcular todo
+                dgvCarrito.Rows[e.RowIndex].Cells["Cantidad"].Value = item.Cantidad;
+                ActualizarCarrito();
             }
             catch { ActualizarCarrito(); }
         }
@@ -589,10 +603,67 @@ namespace KIOSKO_Proyecto
         private void BtnProductos_Click(object sender, EventArgs e) { using (var formInventario = new FormInventario()) { formInventario.ShowDialog(this); } CargarProductos(); }
         private void BtnGestionInventario_Click(object sender, EventArgs e) { using (var formGestionInventario = new FormGestionInventario()) { formGestionInventario.ShowDialog(this); } CargarProductos(); }
         private void BtnVerReportes_Click(object sender, EventArgs e) { using (var formVerReportes = new FormVerReportes(_empleadoAutenticado)) { formVerReportes.ShowDialog(this); } }
+        private void BtnProductos_Click(object sender, EventArgs e) 
+        { 
+            using (var formInventario = new FormInventario()) 
+            { 
+                formInventario.ShowDialog(this); 
+            } 
+            CargarProductos(); 
+        }
+
+        private void BtnGestionInventario_Click(object sender, EventArgs e) 
+        { 
+            using (var formGestionInventario = new FormGestionInventario()) 
+            { 
+                formGestionInventario.ShowDialog(this); 
+            } 
+            CargarProductos(); 
+        }
+
+        private void BtnVerReportes_Click(object sender, EventArgs e) 
+        { 
+            using (var formVerReportes = new FormVerReportes(_empleadoAutenticado)) 
+            { 
+                formVerReportes.ShowDialog(this); 
+            } 
+        }
+
+        private void LblEmpleado_Click(object sender, EventArgs e)
+        {
+            menuUsuario.Show(lblEmpleado, new Point(0, lblEmpleado.Height));
+        }
+
         private void BtnCerrarSesion_Click(object sender, EventArgs e)
         {
-            if (carrito.Any()) { if (MessageBox.Show("Hay productos en el carrito. ¿Seguro que deseas cerrar sesión?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.No) { return; } }
-            if (MessageBox.Show("¿Deseas cerrar sesión?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes) { this.DialogResult = DialogResult.Retry; this.Close(); }
+            if (carrito.Any()) 
+            { 
+                if (MessageBox.Show("Hay productos en el carrito. ¿Seguro que deseas cerrar sesión?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.No) 
+                { 
+                    return; 
+                } 
+            }
+            if (MessageBox.Show("¿Deseas cerrar sesión?", "Confirmar", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes) 
+            { 
+                this.DialogResult = DialogResult.Retry; 
+                this.Close(); 
+            }
+        }
+
+        private Button CrearBotonModulo(string texto, Color color)
+        {
+            return new Button
+            {
+                Text = texto,
+                Width = 140,
+                Height = 45,
+                BackColor = color,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand,
+                Margin = new Padding(5, 0, 5, 0)
+            };
         }
 
         private Button CrearBotonModulo(string texto, Color color)

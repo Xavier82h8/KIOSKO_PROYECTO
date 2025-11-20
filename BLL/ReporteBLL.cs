@@ -3,16 +3,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Data;
 using KIOSKO_Proyecto.Datos;
 using KIOSKO_Proyecto.Modelos;
-using iTextSharp.text;
-using iTextSharp.text.pdf;
 
 namespace KIOSKO_Proyecto.BLL
 {
     public class ReporteBLL
     {
-        private ReporteDAL _reporteDAL = new ReporteDAL();
+        private readonly ReporteDAL _reporteDAL = new ReporteDAL();
 
         public List<VentaDetalladaReporte> GenerarReporteVentasDetallado(DateTime fechaInicio, DateTime fechaFin)
         {
@@ -32,6 +31,16 @@ namespace KIOSKO_Proyecto.BLL
             foreach (var item in data)
             {
                 sb.AppendLine($"{item.VentaID},{item.FechaVenta:g},\"{item.NombreEmpleado}\",\"{item.NombreProducto}\",{item.Cantidad},{item.PrecioUnitario},{item.Subtotal},{item.TotalVenta},\"{item.MetodoPago}\"");
+        // Reporte de Ventas Detalladas
+        public DataTable ObtenerVentasDetalladas(DateTime desde, DateTime hasta)
+        {
+            try
+            {
+                return _reporteDAL.ObtenerVentasDetalladas(desde, hasta);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error BLL - Ventas detalladas: " + ex.Message);
             }
             File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
         }
@@ -89,8 +98,29 @@ namespace KIOSKO_Proyecto.BLL
                 doc.Add(table);
             }
             finally
+        // Corte de Caja Diario
+        public DataTable ObtenerCorteCajaDiario(DateTime fecha)
+        {
+            try
             {
-                doc.Close();
+                return _reporteDAL.ObtenerCorteCajaDiario(fecha);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error BLL - Corte de caja: " + ex.Message);
+            }
+        }
+
+        // Totales del día (efectivo + tarjeta)
+        public (decimal totalEfectivo, decimal totalTarjeta, decimal granTotal) ObtenerTotalesDia(DateTime fecha)
+        {
+            try
+            {
+                return _reporteDAL.ObtenerTotalesDia(fecha);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error BLL - Totales: " + ex.Message);
             }
         }
     }
