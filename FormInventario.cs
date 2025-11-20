@@ -1,187 +1,115 @@
 using System;
+using System.Drawing;
 using System.Windows.Forms;
 using KIOSKO_Proyecto.BLL;
 using KIOSKO_Proyecto.Modelos;
-using System.Drawing;
-using System.Linq;
-using System.Collections.Generic;
 
 namespace KIOSKO_Proyecto
 {
     public partial class FormInventario : Form
     {
-        private ProductoBLL _productoBLL = new ProductoBLL(); // Changed to ProductoBLL
-        private DataGridView dgvProductos; // Renamed to dgvProductos
-        private Button btnNuevoProducto;
-        private Button btnEditarProducto;
-        private Button btnEliminarProducto;
+        private ProductoBLL productoBLL = new ProductoBLL();
+        private Empleado _empleado;
 
-        public FormInventario()
+        // Definición de controles (Si te marca error diciendo que "ya existen", borra estas 3 líneas)
+        private DataGridView dgvInventario;
+        private Button btnAgregarStock;
+        private TextBox txtBuscar;
+
+        public FormInventario(Empleado empleado)
         {
-            this.Text = "Gestión de Productos e Inventario"; // Updated title
-            this.Size = new System.Drawing.Size(1000, 700); // Increased form size
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.BackColor = Color.White;
+            // 1. Llama al diseñador automático (si existe)
+            InitializeComponent();
 
-            // Panel para controles de entrada y botones
-            var panelControles = new Panel
-            {
-                Dock = DockStyle.Top,
-                Height = 50, // Reduced height
-                BackColor = Color.FromArgb(240, 240, 240),
-                Padding = new Padding(10)
-            };
+            // 2. Configuración extra manual
+            _empleado = empleado;
+            this.Text = $"Gestión de Inventario - Usuario: {_empleado.NombreEmp}";
+            this.StartPosition = FormStartPosition.CenterParent;
 
-            // Buttons for CRUD operations
-            btnNuevoProducto = new Button { Text = "Nuevo Producto", Location = new Point(10, 10), Width = 120, Height = 30, BackColor = Color.FromArgb(92, 184, 92), ForeColor = Color.White };
-            btnEditarProducto = new Button { Text = "Editar Producto", Location = new Point(140, 10), Width = 120, Height = 30, BackColor = Color.FromArgb(91, 192, 222), ForeColor = Color.White };
-            btnEliminarProducto = new Button { Text = "Eliminar Producto", Location = new Point(270, 10), Width = 120, Height = 30, BackColor = Color.FromArgb(217, 83, 79), ForeColor = Color.White };
+            // 3. Intentamos inicializar controles si el diseñador estaba vacío
+            InicializarControlesManuales();
 
-            // Add controls to panelControles
-            panelControles.Controls.Add(btnNuevoProducto);
-            panelControles.Controls.Add(btnEditarProducto);
-            panelControles.Controls.Add(btnEliminarProducto);
-
-            this.Controls.Add(panelControles);
-
-            dgvProductos = new DataGridView // Renamed
-            {
-                AllowUserToAddRows = false,
-                AllowUserToDeleteRows = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                Dock = DockStyle.Fill,
-                ReadOnly = true,
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                TabIndex = 0,
-                BackgroundColor = Color.White,
-                BorderStyle = BorderStyle.Fixed3D
-            };
-            this.Controls.Add(dgvProductos);
-            dgvProductos.BringToFront(); // Ensure DGV is on top of panelControles
-
-            ConfigurarDgvProductos(); // Configure columns for products
-            CargarProductos(); // Load products
-
-            // Event Handlers
-            btnNuevoProducto.Click += BtnNuevoProducto_Click;
-            btnEditarProducto.Click += BtnEditarProducto_Click;
-            btnEliminarProducto.Click += BtnEliminarProducto_Click;
+            ConfigurarGrid();
+            CargarInventario();
         }
 
-        private void ConfigurarDgvProductos() // Renamed
+        // HE RENOMBRADO ESTE MÉTODO PARA QUITAR EL ERROR
+        private void InicializarControlesManuales()
         {
-            dgvProductos.Columns.Clear();
-            dgvProductos.Columns.Add("IdProducto", "ID");
-            dgvProductos.Columns.Add("Nombre", "Nombre");
-            dgvProductos.Columns.Add("Categoria", "Categoría");
-            dgvProductos.Columns.Add("Precio", "Precio");
-            dgvProductos.Columns.Add("CantidadDisponible", "Stock");
+            // Si el Grid ya fue creado por el InitializeComponent automático, no hacemos nada
+            if (this.dgvInventario != null) return;
 
-            dgvProductos.Columns["IdProducto"].Width = 50;
-            dgvProductos.Columns["Precio"].DefaultCellStyle.Format = "C2";
-            dgvProductos.Columns["Precio"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-            dgvProductos.Columns["CantidadDisponible"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            // Si no existe, lo creamos manualmente
+            this.dgvInventario = new DataGridView();
+            this.btnAgregarStock = new Button();
+            this.txtBuscar = new TextBox();
+
+            // Panel Superior
+            Panel panelTop = new Panel { Dock = DockStyle.Top, Height = 60, Padding = new Padding(10) };
+
+            txtBuscar.Text = "Buscar producto..."; // Placeholder simple
+            txtBuscar.Location = new Point(20, 20);
+            txtBuscar.Width = 200;
+            txtBuscar.TextChanged += (s, e) => CargarInventario(txtBuscar.Text);
+            txtBuscar.Enter += (s, e) => { if (txtBuscar.Text == "Buscar producto...") txtBuscar.Text = ""; };
+
+            btnAgregarStock.Text = "+ Agregar Stock";
+            btnAgregarStock.Location = new Point(250, 18);
+            btnAgregarStock.Width = 150;
+            btnAgregarStock.BackColor = Color.SeaGreen;
+            btnAgregarStock.ForeColor = Color.White;
+            btnAgregarStock.Click += BtnAgregarStock_Click;
+
+            panelTop.Controls.Add(txtBuscar);
+            panelTop.Controls.Add(btnAgregarStock);
+
+            // Grid
+            dgvInventario.Dock = DockStyle.Fill;
+            dgvInventario.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dgvInventario.BackgroundColor = Color.White;
+            dgvInventario.ReadOnly = true;
+
+            this.Controls.Add(dgvInventario);
+            this.Controls.Add(panelTop);
         }
 
-        private void CargarProductos() // Renamed
+        private void ConfigurarGrid()
         {
-            dgvProductos.Rows.Clear();
-            var productos = _productoBLL.ObtenerProductos(); // Using ProductoBLL
-            foreach (var p in productos)
+            // Aseguramos que el grid tenga columnas
+            if (dgvInventario.Columns.Count == 0)
             {
-                dgvProductos.Rows.Add(p.IdProducto, p.Nombre, p.Categoria, p.Precio, p.CantidadDisponible);
+                dgvInventario.Columns.Add("Id", "ID");
+                dgvInventario.Columns.Add("Producto", "Producto");
+                dgvInventario.Columns.Add("Cantidad", "Cantidad Movimiento");
+                dgvInventario.Columns.Add("Fecha", "Fecha");
+                dgvInventario.Columns.Add("Tipo", "Observaciones");
             }
         }
 
-        
-
-        
-
-        private void BtnNuevoProducto_Click(object sender, EventArgs e)
+        private void CargarInventario(string filtro = "")
         {
-            using (FormularioProducto formProducto = new FormularioProducto())
+            try
             {
-                if (formProducto.ShowDialog() == DialogResult.OK)
+                var datos = new Datos.InventarioDAL().ObtenerHistorialInventario();
+                dgvInventario.Rows.Clear();
+                foreach (var item in datos)
                 {
-                    try
+                    if (string.IsNullOrEmpty(filtro) || filtro == "Buscar producto..." || item.NombreProducto.ToLower().Contains(filtro.ToLower()))
                     {
-                        _productoBLL.AgregarProducto(formProducto.Producto);
-                        MessageBox.Show("Producto agregado exitosamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        CargarProductos();
-                        LimpiarCampos();
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Error al agregar producto: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        dgvInventario.Rows.Add(item.IdInventario, item.NombreProducto, item.Cantidad, item.FechaRegistro, item.Observaciones);
                     }
                 }
             }
-        }
-
-        private void BtnEditarProducto_Click(object sender, EventArgs e)
-        {
-            if (dgvProductos.SelectedRows.Count == 0)
+            catch (Exception ex)
             {
-                MessageBox.Show("Seleccione un producto para editar.", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            int idProducto = Convert.ToInt32(dgvProductos.SelectedRows[0].Cells["IdProducto"].Value);
-            Producto productoAEditar = _productoBLL.ObtenerProductoPorId(idProducto);
-
-            if (productoAEditar == null)
-            {
-                MessageBox.Show("No se pudo encontrar el producto seleccionado.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            using (FormularioProducto formProducto = new FormularioProducto(productoAEditar))
-            {
-                if (formProducto.ShowDialog() == DialogResult.OK)
-                {
-                    try
-                    {
-                        _productoBLL.ActualizarProducto(formProducto.Producto);
-                        MessageBox.Show("Producto actualizado exitosamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        CargarProductos();
-                        LimpiarCampos();
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Error al actualizar producto: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
+                // Evitamos que el form falle si la DB no responde, solo mostramos el error
+                MessageBox.Show("Error cargando inventario: " + ex.Message);
             }
         }
 
-        private void BtnEliminarProducto_Click(object sender, EventArgs e)
+        private void BtnAgregarStock_Click(object sender, EventArgs e)
         {
-            if (dgvProductos.SelectedRows.Count == 0)
-            {
-                MessageBox.Show("Seleccione un producto para eliminar.", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (MessageBox.Show("¿Está seguro de que desea eliminar el producto seleccionado?", "Confirmar Eliminación", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-            {
-                try
-                {
-                    int idProducto = Convert.ToInt32(dgvProductos.SelectedRows[0].Cells["IdProducto"].Value);
-                    _productoBLL.EliminarProducto(idProducto);
-                    MessageBox.Show("Producto eliminado exitosamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    CargarProductos();
-                    LimpiarCampos();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error al eliminar producto: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
-        }
-
-        private void LimpiarCampos()
-        {
-            // No input fields to clear in this form.
+            MessageBox.Show("Para agregar stock, utiliza el módulo de Compras o Ajustes (Pendiente de implementación).", "Info");
         }
     }
 }

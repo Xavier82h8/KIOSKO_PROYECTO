@@ -39,6 +39,7 @@
     <Reference Include="itextsharp, Version=5.5.13.4, Culture=neutral, PublicKeyToken=8354ae6d2174ddca, processorArchitecture=MSIL">
       <HintPath>..\packages\iTextSharp.5.5.13.4\lib\net461\itextsharp.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
@@ -91,8 +92,10 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>KIOSKO_ITHDataSet1.xsd</DependentUpon>
     </Compile>
+    <Compile Include="Modelos\CorteCaja.cs" />
     <Compile Include="Modelos\DetalleVenta.cs" />
     <Compile Include="Modelos\Empleado.cs" />
+    <Compile Include="Modelos\HistorialCorte.cs" />
     <Compile Include="Modelos\Inventario.cs" />
     <Compile Include="Modelos\Producto.cs" />
     <Compile Include="Modelos\ResultadoVenta.cs" />

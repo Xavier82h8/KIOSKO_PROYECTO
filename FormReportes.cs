@@ -12,6 +12,7 @@ namespace KIOSKO_Proyecto
 {
     public class FormReportes : Form
     {
+        // Variables globales de la clase
         private DateTimePicker dtpDesde;
         private DateTimePicker dtpHasta;
         private Button btnGenerar;
@@ -19,25 +20,30 @@ namespace KIOSKO_Proyecto
         private Button btnGenerarCortePdf;
         private Label lblTotalVentas;
         private DataGridView dgvReporte;
-        
+
         private VentaBLL _ventaBLL = new VentaBLL();
         private ReporteBLL _reporteBLL = new ReporteBLL();
-        private List<VentaDetalladaReporte> _reporteActual; // Store the current report data
+        private List<VentaDetalladaReporte> _reporteActual;
+
+        // Agregamos esta variable para usarla al generar el PDF
+        private Modelos.Empleado _empleado;
 
         public FormReportes(Modelos.Empleado empleado)
         {
+            _empleado = empleado; // Guardamos el empleado
+
             this.Text = "Reporte Detallado de Ventas";
             this.StartPosition = FormStartPosition.CenterParent;
             this.Size = new Size(1000, 700);
 
-            // Top Panel for controls
+            // --- Construcción de la Interfaz ---
             var topPanel = new Panel { Dock = DockStyle.Top, Height = 50, Padding = new Padding(10) };
-            dtpDesde = new DateTimePicker { Value = DateTime.Today.AddDays(-7), Location = new Point(60, 12) };
-            dtpHasta = new DateTimePicker { Value = DateTime.Today, Location = new Point(280, 12) };
+            dtpDesde = new DateTimePicker { Value = DateTime.Today.AddDays(-7), Location = new Point(60, 12), Format = DateTimePickerFormat.Short };
+            dtpHasta = new DateTimePicker { Value = DateTime.Today, Location = new Point(280, 12), Format = DateTimePickerFormat.Short };
             btnGenerar = new Button { Text = "Generar Reporte", Location = new Point(500, 10), Width = 120, Height = 25 };
             btnExportarCSV = new Button { Text = "Exportar a CSV", Location = new Point(630, 10), Width = 120, Height = 25, Enabled = false };
             btnGenerarCortePdf = new Button { Text = "Corte de Caja (PDF)", Location = new Point(760, 10), Width = 150, Height = 25, Enabled = false };
-            
+
             topPanel.Controls.Add(new Label { Text = "Desde:", Location = new Point(10, 15), AutoSize = true });
             topPanel.Controls.Add(dtpDesde);
             topPanel.Controls.Add(new Label { Text = "Hasta:", Location = new Point(230, 15), AutoSize = true });
@@ -45,13 +51,11 @@ namespace KIOSKO_Proyecto
             topPanel.Controls.Add(btnGenerar);
             topPanel.Controls.Add(btnExportarCSV);
             topPanel.Controls.Add(btnGenerarCortePdf);
-            
-            // Bottom Panel for total
+
             var bottomPanel = new Panel { Dock = DockStyle.Bottom, Height = 50, Padding = new Padding(10) };
             lblTotalVentas = new Label { Text = "Total ventas: $0.00", AutoSize = true, Location = new Point(10, 15), Font = new Font("Segoe UI", 12, FontStyle.Bold) };
             bottomPanel.Controls.Add(lblTotalVentas);
 
-            // DataGridView for report
             dgvReporte = new DataGridView
             {
                 Dock = DockStyle.Fill,
@@ -63,16 +67,15 @@ namespace KIOSKO_Proyecto
                 BackgroundColor = Color.White,
                 BorderStyle = BorderStyle.Fixed3D
             };
-            
+
             this.Controls.Add(dgvReporte);
             this.Controls.Add(bottomPanel);
             this.Controls.Add(topPanel);
 
-            // Event Handlers
             btnGenerar.Click += BtnGenerar_Click;
             btnExportarCSV.Click += BtnExportarCSV_Click;
             btnGenerarCortePdf.Click += BtnGenerarCortePdf_Click;
-            
+
             ConfigurarDgvReporte();
         }
 
@@ -89,16 +92,6 @@ namespace KIOSKO_Proyecto
             dgvReporte.Columns.Add("Subtotal", "Subtotal");
             dgvReporte.Columns.Add("MetodoPago", "Método Pago");
 
-            // Adjust column styles
-            dgvReporte.Columns["VentaID"].FillWeight = 8;
-            dgvReporte.Columns["FechaVenta"].FillWeight = 15;
-            dgvReporte.Columns["NombreEmpleado"].FillWeight = 15;
-            dgvReporte.Columns["NombreProducto"].FillWeight = 20;
-            dgvReporte.Columns["Cantidad"].FillWeight = 8;
-            dgvReporte.Columns["PrecioUnitario"].FillWeight = 12;
-            dgvReporte.Columns["Subtotal"].FillWeight = 12;
-            dgvReporte.Columns["MetodoPago"].FillWeight = 10;
-
             dgvReporte.Columns["PrecioUnitario"].DefaultCellStyle.Format = "C2";
             dgvReporte.Columns["Subtotal"].DefaultCellStyle.Format = "C2";
         }
@@ -110,7 +103,8 @@ namespace KIOSKO_Proyecto
 
             try
             {
-                _reporteActual = _ventaBLL.ObtenerVentasDetalladasPorRango(desde, hasta);
+                // Asumiendo que VentaBLL tiene este método. Si no, usa _reporteBLL.GenerarReporteVentasDetallado
+                _reporteActual = _reporteBLL.GenerarReporteVentasDetallado(desde, hasta);
             }
             catch (Exception ex)
             {
@@ -134,7 +128,7 @@ namespace KIOSKO_Proyecto
                         item.MetodoPago
                     );
                 }
-                
+
                 decimal total = _reporteActual.Sum(item => item.Subtotal);
                 lblTotalVentas.Text = $"Total ventas: {total:C2}";
                 btnExportarCSV.Enabled = true;
@@ -151,11 +145,7 @@ namespace KIOSKO_Proyecto
 
         private void BtnExportarCSV_Click(object sender, EventArgs e)
         {
-            if (_reporteActual == null || !_reporteActual.Any())
-            {
-                MessageBox.Show("No hay datos para exportar.", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
+            if (_reporteActual == null || !_reporteActual.Any()) return;
 
             SaveFileDialog sfd = new SaveFileDialog
             {
@@ -167,28 +157,7 @@ namespace KIOSKO_Proyecto
             {
                 try
                 {
-                    var sb = new StringBuilder();
-                    // Headers
-                    var headers = dgvReporte.Columns.Cast<DataGridViewColumn>();
-                    sb.AppendLine(string.Join(",", headers.Select(column => $"\"{column.HeaderText.Replace("\"", "\"\"")}\"").ToArray()));
-
-                    // Rows
-                    foreach (var item in _reporteActual)
-                    {
-                        sb.AppendLine(string.Join(",", new string[]
-                        {
-                            $"\"{item.VentaID}\"",
-                            $"\"{item.FechaVenta}\"",
-                            $"\"{item.NombreEmpleado.Replace("\"", "\"\"")}\"",
-                            $"\"{item.NombreProducto.Replace("\"", "\"\"")}\"",
-                            $"\"{item.Cantidad}\"",
-                            $"\"{item.PrecioUnitario}\"",
-                            $"\"{item.Subtotal}\"",
-                            $"\"{item.MetodoPago.Replace("\"", "\"\"")}\""
-                        }));
-                    }
-
-                    File.WriteAllText(sfd.FileName, sb.ToString(), Encoding.UTF8);
+                    _reporteBLL.ExportarVentasDetalladasCSV(_reporteActual, sfd.FileName);
                     MessageBox.Show("Reporte exportado exitosamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
@@ -198,26 +167,44 @@ namespace KIOSKO_Proyecto
             }
         }
 
+        // --- AQUÍ ESTÁ LA SOLUCIÓN AL ERROR DE VARIABLES ---
         private void BtnGenerarCortePdf_Click(object sender, EventArgs e)
         {
-            if (_reporteActual == null || !_reporteActual.Any())
-            {
-                MessageBox.Show("Primero debe generar un reporte.", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
+            if (_reporteActual == null || !_reporteActual.Any()) return;
 
             SaveFileDialog sfd = new SaveFileDialog
             {
                 Filter = "Archivo PDF (*.pdf)|*.pdf",
-                FileName = $"Corte_De_Caja_{DateTime.Now:yyyyMMdd}.pdf"
+                FileName = $"Reporte_Ventas_{DateTime.Now:yyyyMMdd}.pdf"
             };
 
             if (sfd.ShowDialog() == DialogResult.OK)
             {
                 try
                 {
-                    _reporteBLL.GenerarCorteDeCajaPdf(_reporteActual, dtpDesde.Value, dtpHasta.Value, sfd.FileName);
-                    MessageBox.Show("Reporte 'Corte de Caja' exportado exitosamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    // 1. CREAR LOS OBJETOS NECESARIOS AL VUELO
+                    // Usamos la fecha "Hasta" como referencia para el corte simulado
+                    var corteData = _reporteBLL.GenerarCorteCajaDiario(dtpHasta.Value);
+
+                    // 2. Crear un historial "Dummy" (Simulado)
+                    // Como este form no hace arqueo manual, asumimos que Sistema = Real para poder imprimir
+                    var historialDummy = new HistorialCorte
+                    {
+                        IdEmpleado = _empleado.IdEmpleado,
+                        NombreEmpleado = _empleado.NombreEmp,
+                        FechaCorte = DateTime.Now,
+                        TotalSistema = corteData.TotalDia,
+                        TotalReal = corteData.TotalDia, // Asumimos exactitud para el reporte histórico
+                        Diferencia = 0,
+                        TotalEfectivo = corteData.TotalEfectivo,
+                        TotalTarjeta = corteData.TotalTarjeta,
+                        Comentarios = "Reporte generado desde Historial de Ventas"
+                    };
+
+                    // 3. LLAMAR AL MÉTODO CON LOS OBJETOS CREADOS
+                    _reporteBLL.ExportarCorteCajaPDF(corteData, historialDummy, sfd.FileName);
+
+                    MessageBox.Show("Reporte PDF exportado exitosamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {

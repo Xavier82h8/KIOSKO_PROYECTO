@@ -12,35 +12,37 @@ namespace KIOSKO_Proyecto
 {
     public partial class FormPrincipalPOS : Form
     {
+        // --- CAPAS DE NEGOCIO ---
         private ProductoBLL productoBLL = new ProductoBLL();
         private VentaBLL ventaBLL = new VentaBLL();
-        private EmpleadoBLL empleadoBLL = new EmpleadoBLL();
 
+        // --- DATOS ---
         private List<DetalleVenta> carrito = new List<DetalleVenta>();
         private Modelos.Empleado _empleadoAutenticado;
+        private bool _isUpdatingGrid = false; // Evita bucles al editar celdas
 
-        // Variable para evitar bucles infinitos al editar celdas
-        private bool _isUpdatingGrid = false; 
-
-        // --- Controles principales ---
+        // --- CONTROLES ---
         private DataGridView dgvProductos;
         private DataGridView dgvCarrito;
         private TextBox txtBuscar;
         private ComboBox cmbCategoria;
+
         private Label lblTotal;
         private Label lblEmpleado;
-        
-        // Botones del menú superior
+        private Label lblRol;
+        private ContextMenuStrip menuUsuario;
+
+        // Botones Menú
         private Button btnProductos;
         private Button btnGestionInventario;
         private Button btnVerReportes;
-        private ContextMenuStrip menuUsuario;
 
+        // Controles Carrito
         private Label lblItemsCarrito;
         private Button btnEliminar;
         private Button btnLimpiar;
 
-        // --- Nuevos Controles de Pago ---
+        // Controles Pago
         private TextBox txtMontoEfectivo;
         private TextBox txtMontoTarjeta;
         private Label lblCambio;
@@ -50,123 +52,220 @@ namespace KIOSKO_Proyecto
         public FormPrincipalPOS(Modelos.Empleado empleado)
         {
             _empleadoAutenticado = empleado;
-            this.DoubleBuffered = true;
+            this.DoubleBuffered = true; // Reduce parpadeo
+
+            // Inicializar controles de usuario antes de InitializeComponent
+            lblEmpleado = new Label();
+            lblRol = new Label();
+
             InitializeComponent();
             ConfigurarFormulario();
             InitializeUserInterface();
             CargarProductos();
         }
 
+        // Método para volver a mostrar el formulario después de login exitoso
+        public void MostrarFormulario()
+        {
+            this.Show();
+            this.WindowState = FormWindowState.Normal;
+            this.BringToFront();
+        }
+
         private void InitializeComponent()
         {
             this.SuspendLayout();
             this.Text = "Kioskito ITH - Sistema POS";
-            this.Size = new Size(1400, 800);
+            this.Size = new Size(1400, 850);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.BackColor = Color.FromArgb(248, 249, 250);
-            this.FormBorderStyle = FormBorderStyle.None;
 
+            // 1. Crear los Paneles
             var panelSuperior = CrearPanelSuperior();
-            var panelCheckout = CrearPanelCheckout();
-            panelCheckout.Dock = DockStyle.Fill;
-            
-            var panelProductos = CrearPanelProductos();
-            panelProductos.Dock = DockStyle.Left;
-            panelProductos.Width = (int)(this.Width * 0.60);
+            var panelCheckout = CrearPanelCheckout(); // Panel derecho/central
+            var panelProductos = CrearPanelProductos(); // Panel izquierdo
 
-            this.Controls.Add(panelCheckout);
-            this.Controls.Add(panelProductos);
-            this.Controls.Add(panelSuperior);
+            // 2. Configurar Docking (Anclaje)
+            panelSuperior.Dock = DockStyle.Top;
+            panelProductos.Dock = DockStyle.Left;
+            panelProductos.Width = (int)(this.Width * 0.60); // 60% del ancho
+            panelCheckout.Dock = DockStyle.Fill; // Ocupa el resto
+
+            // 3. Agregar al Formulario 
+            this.Controls.Add(panelCheckout);   // Fondo
+            this.Controls.Add(panelProductos);  // Izquierda
+            this.Controls.Add(panelSuperior);   // Arriba
 
             CrearMenuUsuario();
             ConfigurarEventos();
+
             this.ResumeLayout(false);
         }
 
-        private void CrearMenuUsuario()
-        {
-            menuUsuario = new ContextMenuStrip();
-            var itemCerrarSesion = menuUsuario.Items.Add("Cerrar sesión");
-            itemCerrarSesion.Click += BtnCerrarSesion_Click;
-        }
-
-        // --- DISEÑO DEL ENCABEZADO ---
+        // --- DISEÑO DEL ENCABEZADO CORREGIDO ---
         private Panel CrearPanelSuperior()
         {
-            var panel = new Panel { Dock = DockStyle.Top, Height = 80, BackColor = Color.White, Padding = new Padding(10) };
-            panel.Paint += (s, e) => e.Graphics.DrawLine(new Pen(Color.FromArgb(220, 220, 220), 1), 0, panel.Height - 1, panel.Width, panel.Height - 1);
+            var panel = new Panel { Dock = DockStyle.Top, Height = 90, BackColor = Color.White };
 
-            var lblTitulo = new Label 
-            { 
-                Text = "🛒 Kioskito ITH", 
-                Font = new Font("Segoe UI", 16, FontStyle.Bold), 
-                ForeColor = Color.FromArgb(45, 140, 200), 
-                AutoSize = true, 
-                Location = new Point(15, 25)
-            };
-            panel.Controls.Add(lblTitulo);
+            // Línea gris decorativa abajo
+            panel.Paint += (s, e) => e.Graphics.DrawLine(new Pen(Color.LightGray, 1), 0, panel.Height - 1, panel.Width, panel.Height - 1);
 
-            var panelCentral = new FlowLayoutPanel 
-            { 
-                AutoSize = true, 
-                FlowDirection = FlowDirection.LeftToRight, 
-                Location = new Point(250, 20),
-                WrapContents = false
+            // Usamos un TableLayoutPanel para distribución precisa
+            var tableLayoutPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount = 1,
+                BackColor = Color.Transparent
             };
 
-            cmbCategoria = new ComboBox { Width = 160, DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 11), FlatStyle = FlatStyle.Flat, Margin = new Padding(0, 5, 10, 0) };
-            
-            var panelWrapperBusqueda = new Panel { Size = new Size(250, 40), BackColor = this.BackColor, Margin = new Padding(0, 0, 0, 0) };
-            panelWrapperBusqueda.Paint += (s, e) => PintarBordeRedondeado(e.Graphics, panelWrapperBusqueda, Color.FromArgb(200, 200, 200), 8);
-            
-            var iconoBuscar = new Label { Text = "🔍", Font = new Font("Segoe UI", 12), Location = new Point(8, 8), Size = new Size(25, 25), BackColor = Color.Transparent };
-            txtBuscar = new TextBox { Location = new Point(35, 9), Width = 200, BorderStyle = BorderStyle.None, Font = new Font("Segoe UI", 11), BackColor = this.BackColor, ForeColor = Color.Gray };
-            txtBuscar.Text = "Buscar productos...";
-            
+            // Configurar columnas: 30% Logo, 40% Buscador, 30% Módulos + Usuario
+            tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30F));
+            tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40F));
+            tableLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30F));
+
+            // --- 1. SECCIÓN IZQUIERDA: LOGO ---
+            var panelLogo = new Panel { Dock = DockStyle.Fill };
+            var lblLogo = new Label
+            {
+                Text = "🛒 Kioskito ITH",
+                Font = new Font("Segoe UI", 18, FontStyle.Bold),
+                ForeColor = Color.FromArgb(45, 140, 200),
+                AutoSize = true,
+                Location = new Point(20, 25)
+            };
+            panelLogo.Controls.Add(lblLogo);
+            tableLayoutPanel.Controls.Add(panelLogo, 0, 0);
+
+            // --- 2. SECCIÓN CENTRAL: BUSCADOR Y FILTROS ---
+            var panelBusqueda = new Panel { Dock = DockStyle.Fill };
+            var containerBusqueda = new FlowLayoutPanel
+            {
+                AutoSize = true,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                Location = new Point(10, 25)
+            };
+
+            cmbCategoria = new ComboBox
+            {
+                Width = 150,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 11),
+                FlatStyle = FlatStyle.Flat,
+                Margin = new Padding(0, 0, 10, 0)
+            };
+
+            // Panel wrapper para darle borde redondeado al textbox
+            var panelTxtWrapper = new Panel
+            {
+                Size = new Size(250, 40),
+                BackColor = Color.WhiteSmoke
+            };
+            panelTxtWrapper.Paint += (s, e) => PintarBordeRedondeado(e.Graphics, panelTxtWrapper, Color.Silver, 8);
+
+            var icoSearch = new Label
+            {
+                Text = "🔍",
+                Font = new Font("Segoe UI", 12),
+                Location = new Point(8, 10),
+                AutoSize = true,
+                BackColor = Color.Transparent
+            };
+            txtBuscar = new TextBox
+            {
+                Location = new Point(35, 8),
+                Width = 200,
+                BorderStyle = BorderStyle.None,
+                Font = new Font("Segoe UI", 11),
+                BackColor = Color.WhiteSmoke,
+                ForeColor = Color.Gray,
+                Text = "Buscar productos..."
+            };
+
+            // Placeholders del buscador
             txtBuscar.Enter += (s, e) => { if (txtBuscar.Text == "Buscar productos...") { txtBuscar.Text = ""; txtBuscar.ForeColor = Color.Black; } };
             txtBuscar.Leave += (s, e) => { if (string.IsNullOrWhiteSpace(txtBuscar.Text)) { txtBuscar.Text = "Buscar productos..."; txtBuscar.ForeColor = Color.Gray; } };
 
-            panelWrapperBusqueda.Controls.Add(iconoBuscar);
-            panelWrapperBusqueda.Controls.Add(txtBuscar);
+            panelTxtWrapper.Controls.Add(icoSearch);
+            panelTxtWrapper.Controls.Add(txtBuscar);
+            containerBusqueda.Controls.Add(cmbCategoria);
+            containerBusqueda.Controls.Add(panelTxtWrapper);
+            panelBusqueda.Controls.Add(containerBusqueda);
+            tableLayoutPanel.Controls.Add(panelBusqueda, 1, 0);
 
-            panelCentral.Controls.Add(cmbCategoria);
-            panelCentral.Controls.Add(panelWrapperBusqueda);
-            panel.Controls.Add(panelCentral);
-
-            var panelDerecho = new FlowLayoutPanel 
-            { 
-                Dock = DockStyle.Right, 
-                FlowDirection = FlowDirection.LeftToRight, 
-                AutoSize = true, 
-                Padding = new Padding(0, 10, 0, 0)
+            // --- 3. SECCIÓN DERECHA: MÓDULOS + USUARIO ---
+            var panelDerecha = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = true,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Location = new Point(0, 20)
             };
 
-            btnProductos = CrearBotonModulo("📦 Productos", Color.FromArgb(91, 192, 222));
-            btnGestionInventario = CrearBotonModulo("📥 Inventario", Color.FromArgb(240, 173, 78));
-            btnVerReportes = CrearBotonModulo("📈 Reportes", Color.FromArgb(45, 140, 200));
+            // Botones Módulos
+            btnProductos = CrearBotonModulo("📦 Productos");
+            btnGestionInventario = CrearBotonModulo("📥 Inventario");
+            btnVerReportes = CrearBotonModulo("📈 Reportes");
 
-            var panelUsuario = new Panel { AutoSize = true, Margin = new Padding(20, 5, 0, 0), Cursor = Cursors.Hand };
-            lblEmpleado = new Label { Font = new Font("Segoe UI", 10, FontStyle.Bold), ForeColor = Color.FromArgb(45, 140, 200), AutoSize = true, Text = "Usuario" };
-            var lblRol = new Label { Font = new Font("Segoe UI", 8), ForeColor = Color.Gray, AutoSize = true, Location = new Point(0, 20), Text = "Rol" };
-            
+            // Panel del Usuario (siempre a la derecha)
+            var panelUsuario = new Panel
+            {
+                Size = new Size(140, 50),
+                Margin = new Padding(15, 0, 0, 0),
+                Cursor = Cursors.Hand
+            };
+
+            string nombre = _empleadoAutenticado != null ? _empleadoAutenticado.NombreEmp : "Usuario";
+            string rol = _empleadoAutenticado != null ? _empleadoAutenticado.Puesto : "Rol";
+
+            lblEmpleado = new Label
+            {
+                Text = nombre,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                ForeColor = Color.FromArgb(64, 64, 64),
+                AutoSize = true,
+                Location = new Point(5, 5)
+            };
+            lblRol = new Label
+            {
+                Text = rol,
+                Font = new Font("Segoe UI", 8),
+                ForeColor = Color.Gray,
+                AutoSize = true,
+                Location = new Point(5, 28)
+            };
+
+            // Evento para menú al hacer clic
+            void ClickMenu(object s, EventArgs e) => menuUsuario?.Show(Cursor.Position);
+            panelUsuario.Click += ClickMenu;
+            lblEmpleado.Click += ClickMenu;
+            lblRol.Click += ClickMenu;
+
             panelUsuario.Controls.Add(lblEmpleado);
             panelUsuario.Controls.Add(lblRol);
-            panelUsuario.Click += (s, e) => menuUsuario.Show(panelUsuario, 0, panelUsuario.Height);
-            lblEmpleado.Click += (s, e) => menuUsuario.Show(panelUsuario, 0, panelUsuario.Height);
-            lblEmpleado.Tag = lblRol; 
 
-            panelDerecho.Controls.Add(btnProductos);
-            panelDerecho.Controls.Add(btnGestionInventario);
-            panelDerecho.Controls.Add(btnVerReportes);
-            panelDerecho.Controls.Add(panelUsuario);
+            // Agregar controles al panel derecho
+            panelDerecha.Controls.Add(btnProductos);
+            panelDerecha.Controls.Add(btnGestionInventario);
+            panelDerecha.Controls.Add(btnVerReportes);
+            panelDerecha.Controls.Add(panelUsuario);
 
-            panel.Controls.Add(panelDerecho);
+            tableLayoutPanel.Controls.Add(panelDerecha, 2, 0);
 
+            panel.Controls.Add(tableLayoutPanel);
             return panel;
         }
 
-        private Button CrearBotonModulo(string texto, Color colorBase)
+        private Button CrearBotonModulo(string texto)
         {
+            Color colorBase;
+            if (texto.Contains("Productos")) colorBase = Color.FromArgb(91, 192, 222);
+            else if (texto.Contains("Inventario")) colorBase = Color.FromArgb(240, 173, 78);
+            else colorBase = Color.FromArgb(45, 140, 200);
+
             var btn = new Button
             {
                 Text = texto,
@@ -174,12 +273,16 @@ namespace KIOSKO_Proyecto
                 BackColor = colorBase,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                AutoSize = true,
-                Padding = new Padding(10, 5, 10, 5),
-                Margin = new Padding(5, 5, 0, 0),
+                Size = new Size(110, 35),
+                Margin = new Padding(5, 0, 0, 0),
                 Cursor = Cursors.Hand
             };
             btn.FlatAppearance.BorderSize = 0;
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(
+                (int)(colorBase.R * 0.9),
+                (int)(colorBase.G * 0.9),
+                (int)(colorBase.B * 0.9)
+            );
             return btn;
         }
 
@@ -188,22 +291,22 @@ namespace KIOSKO_Proyecto
             var panel = new Panel { Padding = new Padding(20, 20, 10, 20), BackColor = this.BackColor };
             var lblTitulo = new Label { Text = "Productos Disponibles", Font = new Font("Segoe UI", 14, FontStyle.Bold), ForeColor = Color.FromArgb(50, 50, 50), Dock = DockStyle.Top, Height = 35 };
 
-            dgvProductos = new DataGridView 
-            { 
-                Dock = DockStyle.Fill, 
-                AllowUserToAddRows = false, 
-                AllowUserToDeleteRows = false, 
-                ReadOnly = true, 
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect, 
-                RowHeadersVisible = false, 
-                BackgroundColor = Color.White, 
-                BorderStyle = BorderStyle.None, 
-                Font = new Font("Segoe UI", 10), 
-                RowTemplate = { Height = 45 }, 
-                EnableHeadersVisualStyles = false, 
-                AllowUserToResizeRows = false 
+            dgvProductos = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                ReadOnly = true,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                RowHeadersVisible = false,
+                BackgroundColor = Color.White,
+                BorderStyle = BorderStyle.None,
+                Font = new Font("Segoe UI", 10),
+                RowTemplate = { Height = 45 },
+                EnableHeadersVisualStyles = false,
+                AllowUserToResizeRows = false
             };
-            
+
             dgvProductos.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle { BackColor = Color.FromArgb(45, 140, 200), ForeColor = Color.White, Font = new Font("Segoe UI", 10, FontStyle.Bold), Alignment = DataGridViewContentAlignment.MiddleLeft, Padding = new Padding(5) };
             dgvProductos.ColumnHeadersHeight = 40;
             dgvProductos.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
@@ -239,7 +342,7 @@ namespace KIOSKO_Proyecto
 
             btnCobrar = new Button { Text = "COBRAR", Height = 50, BackColor = Color.FromArgb(92, 184, 92), ForeColor = Color.White, Font = new Font("Segoe UI", 12, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Dock = DockStyle.Fill };
             btnTicketTemporal = new Button { Text = "TICKET", Height = 50, BackColor = Color.FromArgb(240, 173, 78), ForeColor = Color.White, Font = new Font("Segoe UI", 12, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Dock = DockStyle.Fill };
-            
+
             panelPago.Controls.Add(btnCobrar, 0, 3);
             panelPago.Controls.Add(btnTicketTemporal, 1, 3);
 
@@ -252,7 +355,7 @@ namespace KIOSKO_Proyecto
             var panelAcciones = new FlowLayoutPanel { Dock = DockStyle.Bottom, FlowDirection = FlowDirection.RightToLeft, AutoSize = true, Padding = new Padding(0, 10, 0, 10) };
             btnLimpiar = new Button { Text = "Limpiar", BackColor = Color.LightCoral, Height = 35, Width = 80, FlatStyle = FlatStyle.Flat, ForeColor = Color.White, Font = new Font("Segoe UI", 9, FontStyle.Bold) };
             btnEliminar = new Button { Text = "Quitar", BackColor = Color.IndianRed, Height = 35, Width = 80, FlatStyle = FlatStyle.Flat, ForeColor = Color.White, Font = new Font("Segoe UI", 9, FontStyle.Bold), Margin = new Padding(0, 0, 5, 0) };
-            
+
             panelAcciones.Controls.Add(btnLimpiar);
             panelAcciones.Controls.Add(btnEliminar);
             panel.Controls.Add(panelAcciones);
@@ -260,7 +363,7 @@ namespace KIOSKO_Proyecto
             var panelAreaCarrito = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 10, 0, 0) };
             var lblTituloCarrito = new Label { Text = "🛒 Tu Carrito", Font = new Font("Segoe UI", 14, FontStyle.Bold), ForeColor = Color.FromArgb(50, 50, 50), Dock = DockStyle.Top, Height = 30 };
             lblItemsCarrito = new Label { Text = "0 items", Font = new Font("Segoe UI", 10), ForeColor = Color.Gray, Dock = DockStyle.Top, Height = 20 };
-            
+
             dgvCarrito = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false, AllowUserToDeleteRows = false, SelectionMode = DataGridViewSelectionMode.FullRowSelect, RowHeadersVisible = false, BackgroundColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Font = new Font("Segoe UI", 10), RowTemplate = { Height = 40 }, EnableHeadersVisualStyles = false, GridColor = Color.FromArgb(240, 240, 240) };
             dgvCarrito.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle { BackColor = Color.FromArgb(248, 249, 250), ForeColor = Color.Black, Font = new Font("Segoe UI", 9, FontStyle.Bold), Alignment = DataGridViewContentAlignment.MiddleLeft };
             dgvCarrito.ColumnHeadersHeight = 35;
@@ -274,13 +377,14 @@ namespace KIOSKO_Proyecto
             return panel;
         }
 
+        // --- UTILIDADES GRÁFICAS ---
         private void PintarBordeRedondeado(Graphics g, Control control, Color borderColor, int radius)
         {
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            using (var path = RoundedRect(new Rectangle(0, 0, control.Width - 1, control.Height - 1), radius)) 
-            { 
-                control.Region = new Region(path); 
-                using (var pen = new Pen(borderColor, 1)) { g.DrawPath(pen, path); } 
+            using (var path = RoundedRect(new Rectangle(0, 0, control.Width - 1, control.Height - 1), radius))
+            {
+                control.Region = new Region(path);
+                using (var pen = new Pen(borderColor, 1)) { g.DrawPath(pen, path); }
             }
         }
 
@@ -298,11 +402,12 @@ namespace KIOSKO_Proyecto
             return path;
         }
 
+        // --- CONFIGURACIÓN ---
         private void ConfigurarFormulario()
         {
             dgvProductos.Columns.Clear();
             dgvCarrito.Columns.Clear();
-            
+
             dgvProductos.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             dgvProductos.Columns.Add("ID", "ID");
             dgvProductos.Columns.Add(new DataGridViewTextBoxColumn { Name = "Nombre", HeaderText = "Producto", FillWeight = 45 });
@@ -315,10 +420,10 @@ namespace KIOSKO_Proyecto
             dgvCarrito.Columns.Add("ID", "ID");
             dgvCarrito.Columns.Add(new DataGridViewTextBoxColumn { Name = "Producto", HeaderText = "Producto", ReadOnly = true, FillWeight = 40 });
             dgvCarrito.Columns.Add(new DataGridViewTextBoxColumn { Name = "Precio", HeaderText = "$ Unit", ReadOnly = true, FillWeight = 20, DefaultCellStyle = new DataGridViewCellStyle { Format = "C2", Alignment = DataGridViewContentAlignment.MiddleRight } });
-            
-            // AQUI ES EL CAMBIO IMPORTANTE: La columna cantidad NO es ReadOnly para poder editarla
+
+            // Columna Cantidad Editable
             dgvCarrito.Columns.Add(new DataGridViewTextBoxColumn { Name = "Cantidad", HeaderText = "Cant.", FillWeight = 15, ReadOnly = false, DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter, BackColor = Color.LightYellow } });
-            
+
             dgvCarrito.Columns.Add(new DataGridViewTextBoxColumn { Name = "Subtotal", HeaderText = "Total", ReadOnly = true, FillWeight = 25, DefaultCellStyle = new DataGridViewCellStyle { Format = "C2", Alignment = DataGridViewContentAlignment.MiddleRight, Font = new Font("Segoe UI", 10, FontStyle.Bold) } });
             dgvCarrito.Columns["ID"].Visible = false;
         }
@@ -329,46 +434,55 @@ namespace KIOSKO_Proyecto
             cmbCategoria.SelectedIndexChanged += CmbCategoria_SelectedIndexChanged;
             dgvProductos.CellDoubleClick += DgvProductos_CellDoubleClick;
             dgvProductos.CellFormatting += DgvProductos_CellFormatting;
-            
-            // Evento de edición de celda en carrito
+
             dgvCarrito.CellValueChanged += DgvCarrito_CellValueChanged;
-            
+
             btnEliminar.Click += BtnEliminar_Click;
             btnLimpiar.Click += BtnLimpiar_Click;
-            
+
             btnProductos.Click += BtnProductos_Click;
             btnGestionInventario.Click += BtnGestionInventario_Click;
             btnVerReportes.Click += BtnVerReportes_Click;
-            
+
             txtMontoEfectivo.TextChanged += TxtMontoEfectivo_TextChanged;
             btnCobrar.Click += BtnCobrar_Click;
             btnTicketTemporal.Click += BtnTicketTemporal_Click;
         }
 
+        private void CrearMenuUsuario()
+        {
+            menuUsuario = new ContextMenuStrip();
+            var itemCerrarSesion = menuUsuario.Items.Add("Cerrar sesión");
+            itemCerrarSesion.Click += BtnCerrarSesion_Click;
+        }
+
         private void InitializeUserInterface()
         {
-            lblEmpleado.Text = _empleadoAutenticado.NombreEmp;
-            if (lblEmpleado.Tag is Label lblRol)
+            if (_empleadoAutenticado != null)
             {
+                lblEmpleado.Text = _empleadoAutenticado.NombreEmp;
                 lblRol.Text = _empleadoAutenticado.Puesto;
-            }
 
-            string puesto = _empleadoAutenticado.Puesto ?? "";
-            bool esAdmin = puesto.Equals("Administrador", StringComparison.OrdinalIgnoreCase);
-            bool esGerente = puesto.Equals("Gerente", StringComparison.OrdinalIgnoreCase);
-            bool esSupervisor = puesto.Equals("Supervisor", StringComparison.OrdinalIgnoreCase) || puesto.Equals("Supervisora", StringComparison.OrdinalIgnoreCase);
-            
-            btnProductos.Visible = esAdmin || esGerente;
-            btnGestionInventario.Visible = esAdmin || esGerente || esSupervisor;
-            btnVerReportes.Visible = esAdmin || esGerente;
+                string puesto = _empleadoAutenticado.Puesto ?? "";
+                bool esAdmin = puesto.IndexOf("Admin", StringComparison.OrdinalIgnoreCase) >= 0;
+                bool esGerente = puesto.IndexOf("Gerente", StringComparison.OrdinalIgnoreCase) >= 0;
+                bool esSupervisor = puesto.IndexOf("Supervisor", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                // CORRECCIÓN: EL BOTÓN DE PRODUCTOS AHORA ES SIEMPRE VISIBLE
+                btnProductos.Visible = true; // Siempre visible
+                btnGestionInventario.Visible = esAdmin || esGerente || esSupervisor;
+                btnVerReportes.Visible = esAdmin || esGerente || esSupervisor;
+            }
         }
+
+        // --- MÉTODOS DE NEGOCIO ---
 
         private void CargarProductos()
         {
             dgvProductos.Rows.Clear();
             var productos = productoBLL.ObtenerProductosDisponibles();
             foreach (var p in productos) { dgvProductos.Rows.Add(p.IdProducto, p.Nombre, p.Categoria, p.Precio, p.CantidadDisponible); }
-            
+
             cmbCategoria.Items.Clear();
             cmbCategoria.Items.Add("📋 Todas las categorías");
             var categorias = productoBLL.ObtenerCategorias();
@@ -428,7 +542,7 @@ namespace KIOSKO_Proyecto
 
         private void ActualizarCarrito()
         {
-            _isUpdatingGrid = true; // Bloqueamos eventos mientras redibujamos todo
+            _isUpdatingGrid = true;
             dgvCarrito.Rows.Clear();
             foreach (var item in carrito)
             {
@@ -439,34 +553,29 @@ namespace KIOSKO_Proyecto
             }
             lblItemsCarrito.Text = $"{carrito.Sum(c => c.Cantidad)} items";
             ActualizarTotal();
-            _isUpdatingGrid = false; // Desbloqueamos eventos
+            _isUpdatingGrid = false;
         }
 
-        // --- LÓGICA MEJORADA PARA EDICIÓN EN CARRITO ---
         private void DgvCarrito_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
-            // Si estamos actualizando masivamente o no es la columna cantidad, salimos
             if (_isUpdatingGrid || e.RowIndex < 0 || e.ColumnIndex != dgvCarrito.Columns["Cantidad"].Index) return;
-            
-            _isUpdatingGrid = true; // Bloquear reentrada
+
+            _isUpdatingGrid = true;
             try
             {
                 var cell = dgvCarrito.Rows[e.RowIndex].Cells["Cantidad"];
-                var item = carrito[e.RowIndex]; // Item en memoria
+                var item = carrito[e.RowIndex];
                 var producto = productoBLL.ObtenerProductoPorId(item.ProductoID);
 
-                // Intentamos parsear el valor que el usuario escribió
                 string inputValor = cell.Value?.ToString();
-                
+
                 if (int.TryParse(inputValor, out int nuevaCantidad))
                 {
-                    // 1. Validar números positivos
                     if (nuevaCantidad <= 0)
                     {
                         MessageBox.Show("La cantidad debe ser mayor a 0.", "Cantidad Inválida");
-                        cell.Value = item.Cantidad; // Restauramos valor anterior
+                        cell.Value = item.Cantidad;
                     }
-                    // 2. Validar Stock disponible
                     else if (nuevaCantidad > producto.CantidadDisponible)
                     {
                         MessageBox.Show($"Stock insuficiente. Solo hay {producto.CantidadDisponible} unidades disponibles.", "Stock Límite");
@@ -475,11 +584,8 @@ namespace KIOSKO_Proyecto
                     }
                     else
                     {
-                        // Valor válido: actualizamos modelo y totales
                         item.Cantidad = nuevaCantidad;
                         item.Subtotal = item.Cantidad * item.PrecioUnitario;
-                        
-                        // Actualizamos visualmente solo la celda de subtotal y el total general
                         dgvCarrito.Rows[e.RowIndex].Cells["Subtotal"].Value = item.Subtotal;
                         lblItemsCarrito.Text = $"{carrito.Sum(c => c.Cantidad)} items";
                         ActualizarTotal();
@@ -487,19 +593,17 @@ namespace KIOSKO_Proyecto
                 }
                 else
                 {
-                    // Si escribió letras o símbolos, restauramos el valor anterior silenciosamente o con aviso
                     MessageBox.Show("Por favor, ingresa un número válido.", "Error de Formato");
-                    cell.Value = item.Cantidad; // Restauramos valor anterior
+                    cell.Value = item.Cantidad;
                 }
             }
             catch (Exception ex)
             {
-                // Red de seguridad final
                 MessageBox.Show("Error al actualizar cantidad: " + ex.Message);
             }
             finally
             {
-                _isUpdatingGrid = false; // Liberar bloqueo
+                _isUpdatingGrid = false;
             }
         }
 
@@ -528,7 +632,7 @@ namespace KIOSKO_Proyecto
         private void ActualizarTotal()
         {
             var total = carrito.Sum(c => c.Subtotal);
-            lblTotal.Text = $"{total:C2}"; 
+            lblTotal.Text = $"{total:C2}";
             TxtMontoEfectivo_TextChanged(null, null);
         }
 
@@ -644,67 +748,94 @@ namespace KIOSKO_Proyecto
                 MessageBox.Show("El carrito está vacío.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            
+
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("--- TICKET PRELIMINAR ---");
             sb.AppendLine($"Fecha: {DateTime.Now:g}");
             sb.AppendLine($"Cajero: {_empleadoAutenticado.NombreEmp}");
             sb.AppendLine("------------------------------------");
-            foreach(var item in carrito)
+            foreach (var item in carrito)
             {
-                sb.AppendLine($"{item.Cantidad} x {item.PrecioUnitario:C2} - {item.ProductoID}");
+                var producto = productoBLL.ObtenerProductoPorId(item.ProductoID);
+                sb.AppendLine($"{item.Cantidad} x {producto.Nombre.PadRight(20).Substring(0, Math.Min(20, producto.Nombre.Length))} - {item.Subtotal:C2}");
             }
             sb.AppendLine("------------------------------------");
-            sb.AppendLine($"TOTAL: {carrito.Sum(x=>x.Subtotal):C2}");
-            
+            sb.AppendLine($"TOTAL: {carrito.Sum(x => x.Subtotal):C2}");
+
             MessageBox.Show(sb.ToString(), "Vista Previa Ticket", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        // --- NAVEGACIÓN Y SISTEMA ---
-
-        private void BtnCerrarSesion_Click(object sender, EventArgs e)
-        {
-            if (MessageBox.Show("¿Estás seguro de cerrar sesión?", "Cerrar Sesión", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-            {
-                this.Close(); 
-            }
-        }
-
-        private void BtnProductos_Click(object sender, EventArgs e)
-        {
-            MessageBox.Show("Módulo de Gestión de Productos (En desarrollo)", "Info");
-        }
+        // --- NAVEGACIÓN ---
 
         private void BtnGestionInventario_Click(object sender, EventArgs e)
         {
-            try 
+            try
             {
                 FormInventario formInv = new FormInventario(_empleadoAutenticado);
                 formInv.ShowDialog();
-                CargarProductos(); 
+                CargarProductos();
+            }
+            catch (Exception ex) { MessageBox.Show("Error al abrir inventario: " + ex.Message); }
+        }
+
+        // CORRECCIÓN: Botón de productos ahora abre el formulario correcto
+        private void BtnProductos_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Abrir el formulario de gestión de productos con el usuario autenticado
+                FormularioProducto formProductos = new FormularioProducto();
+                formProductos.EmpleadoAutenticado = _empleadoAutenticado;
+                formProductos.ShowDialog();
+
+                // Recargar productos después de cerrar el formulario
+                CargarProductos();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error al abrir inventario: " + ex.Message);
+                MessageBox.Show("Error al abrir el módulo de productos: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void BtnVerReportes_Click(object sender, EventArgs e)
         {
-            try 
+            try
             {
                 FormVerReportes formRep = new FormVerReportes(_empleadoAutenticado);
                 formRep.ShowDialog();
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error al abrir reportes: " + ex.Message);
-            }
+            catch (Exception ex) { MessageBox.Show("Error al abrir reportes: " + ex.Message); }
         }
 
-        private void LblEmpleado_Click(object sender, EventArgs e)
+        // CORRECCIÓN: Flujo de cierre de sesión mejorado
+        private void BtnCerrarSesion_Click(object sender, EventArgs e)
         {
-            menuUsuario.Show(Cursor.Position);
+            if (MessageBox.Show("¿Estás seguro de cerrar sesión?", "Cerrar Sesión", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                // Ocultar el formulario actual
+                this.Hide();
+
+                // Crear y mostrar el formulario de login
+                FormLogin loginForm = new FormLogin();
+
+                // Mostrar el login de forma modal
+                if (loginForm.ShowDialog() == DialogResult.OK)
+                {
+                    // Si el login fue exitoso, actualizar el empleado autenticado
+                    _empleadoAutenticado = loginForm.EmpleadoAutenticado;
+
+                    // Actualizar la interfaz de usuario
+                    InitializeUserInterface();
+
+                    // Mostrar el formulario principal nuevamente
+                    this.Show();
+                }
+                else
+                {
+                    // Si el usuario canceló el login, cerrar la aplicación
+                    Application.Exit();
+                }
+            }
         }
     }
 }

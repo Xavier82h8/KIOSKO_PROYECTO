@@ -1,9 +1,9 @@
+using KIOSKO_Proyecto.Datos;
+using KIOSKO_Proyecto.Modelos;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using KIOSKO_Proyecto.Datos;
-using KIOSKO_Proyecto.Modelos;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
 
