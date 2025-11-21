@@ -64,6 +64,9 @@
     <Compile Include="Datos\ProductoDAL.cs" />
     <Compile Include="Datos\VentaDAL.cs" />
     <Compile Include="Datos\ReporteDAL.cs" />
+    <Compile Include="FormAgregarStock.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="FormDetalleVentas.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -3,7 +3,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using KIOSKO_Proyecto.BLL;
 using KIOSKO_Proyecto.Modelos;
-using Microsoft.VisualBasic; // Asegúrate de tener esta referencia agregada (Click derecho en Referencias -> Agregar -> Microsoft.VisualBasic)
+// Ya no necesitamos Microsoft.VisualBasic aquí porque usamos el formulario robusto
 
 namespace KIOSKO_Proyecto
 {
@@ -12,7 +12,7 @@ namespace KIOSKO_Proyecto
         private ProductoBLL productoBLL = new ProductoBLL();
         private Empleado _empleado;
 
-        // Definición de controles manuales (Si el diseñador falla o no existe)
+        // Definición de controles manuales (Protección contra fallos del diseñador)
         private DataGridView dgvInventario;
         private Button btnAgregarStock;
         private TextBox txtBuscar;
@@ -26,7 +26,7 @@ namespace KIOSKO_Proyecto
             _empleado = empleado;
             this.Text = $"Gestión de Inventario - Usuario: {_empleado.NombreEmp}";
             this.StartPosition = FormStartPosition.CenterParent;
-            this.Size = new Size(1000, 600); // Tamaño inicial cómodo
+            this.Size = new Size(1000, 600);
 
             // 3. Inicialización defensiva de controles
             InicializarControlesManuales();
@@ -99,6 +99,7 @@ namespace KIOSKO_Proyecto
             dgvInventario.Columns.Add(colFecha);
 
             dgvInventario.Columns.Add("Tipo", "Observaciones");
+            dgvInventario.Columns.Add("Prov", "Proveedor"); // Agregamos proveedor al grid
 
             // Ocultar ID visualmente
             dgvInventario.Columns[0].Visible = false;
@@ -125,7 +126,8 @@ namespace KIOSKO_Proyecto
                             item.NombreProducto,
                             item.Cantidad,
                             item.FechaRegistro,
-                            item.Observaciones
+                            item.Observaciones,
+                            item.Proveedor
                         );
                     }
                 }
@@ -139,50 +141,21 @@ namespace KIOSKO_Proyecto
 
         private void BtnAgregarStock_Click(object sender, EventArgs e)
         {
-            // Lógica rápida usando InputBox para no crear otro Form
-            // REQUISITO: Agregar Referencia a Microsoft.VisualBasic
+            // Usamos el nuevo formulario ROBUSTO que incluye costos y proveedor
             try
             {
-                string idStr = Interaction.InputBox("Ingresa el ID del Producto al que agregarás inventario:", "Agregar Stock Rápido");
-                if (string.IsNullOrEmpty(idStr)) return; // Cancelado
-
-                if (!int.TryParse(idStr, out int idProd))
+                using (var form = new FormAgregarStock())
                 {
-                    MessageBox.Show("ID inválido.");
-                    return;
-                }
-
-                string cantStr = Interaction.InputBox("Cantidad a ingresar (Positivo para entradas):", "Agregar Stock Rápido");
-                if (string.IsNullOrEmpty(cantStr)) return;
-
-                if (!int.TryParse(cantStr, out int cantidad) || cantidad <= 0)
-                {
-                    MessageBox.Show("Cantidad inválida.");
-                    return;
-                }
-
-                string obs = Interaction.InputBox("Observaciones (Opcional):", "Agregar Stock", "Entrada Manual");
-
-                var movimiento = new Inventario
-                {
-                    IdProducto = idProd,
-                    Cantidad = cantidad,
-                    FechaRegistro = DateTime.Now,
-                    Observaciones = obs,
-                    Proveedor = "Interno"
-                };
-
-                bool exito = new Datos.InventarioDAL().RegistrarEntrada(movimiento);
-
-                if (exito)
-                {
-                    MessageBox.Show("Stock actualizado correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    CargarInventario(); // Refrescar la tabla
+                    if (form.ShowDialog() == DialogResult.OK)
+                    {
+                        // Si guardó bien, recargamos la tabla para ver el cambio
+                        CargarInventario();
+                    }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error al guardar: " + ex.Message);
+                MessageBox.Show("Error al abrir formulario de stock: " + ex.Message);
             }
         }
     }

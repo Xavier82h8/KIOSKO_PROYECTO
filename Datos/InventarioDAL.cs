@@ -38,7 +38,7 @@ namespace KIOSKO_Proyecto.Datos
                                 IdInventario = reader.GetInt32(reader.GetOrdinal("ID_INVENTARIO")),
                                 IdProducto = reader.GetInt32(reader.GetOrdinal("ID_PRODUCTO")),
                                 NombreProducto = reader.GetString(reader.GetOrdinal("NombreProducto")),
-                                Cantidad = reader.GetInt32(reader.GetOrdinal("CANTIDAD")), // Usamos CANTIDAD
+                                Cantidad = reader.GetInt32(reader.GetOrdinal("CANTIDAD")),
                                 FechaRegistro = reader.GetDateTime(reader.GetOrdinal("FECHA_REGISTRO")),
                                 Observaciones = reader.IsDBNull(reader.GetOrdinal("OBSERVACIONES")) ? "" : reader.GetString(reader.GetOrdinal("OBSERVACIONES")),
                                 Proveedor = reader.IsDBNull(reader.GetOrdinal("PROVEEDOR")) ? "" : reader.GetString(reader.GetOrdinal("PROVEEDOR"))
@@ -50,13 +50,12 @@ namespace KIOSKO_Proyecto.Datos
             return historial;
         }
 
-        // 2. Registrar una entrada de mercancía
+        // 2. Registrar entrada de mercancía (ROBUSTO: Toca Stock, Inventario y Pagos)
         public bool RegistrarEntrada(Inventario registro)
         {
             using (var conn = Conexion.ObtenerConexion())
             {
                 conn.Open();
-                // Usamos una transacción para asegurar que se actualice el stock Y se guarde el historial, o ninguno.
                 using (SqlTransaction transaction = conn.BeginTransaction())
                 {
                     try
@@ -70,29 +69,54 @@ namespace KIOSKO_Proyecto.Datos
                         {
                             stockCmd.Parameters.AddWithValue("@Cantidad", registro.Cantidad);
                             stockCmd.Parameters.AddWithValue("@IdProducto", registro.IdProducto);
+
                             int rowsAffected = stockCmd.ExecuteNonQuery();
-                            
                             if (rowsAffected == 0)
                             {
                                 throw new Exception("El producto no fue encontrado, no se pudo actualizar el stock.");
                             }
                         }
 
-                        // B. Insertar el registro en el historial (Tabla INVENTARIO)
+                        // B. Insertar el registro en el historial (Tabla INVENTARIO) y obtener ID
                         string queryInventario = @"
                             INSERT INTO INVENTARIO (ID_PRODUCTO, CANTIDAD, FECHA_REGISTRO, OBSERVACIONES, PROVEEDOR)
-                            VALUES (@IdProducto, @Cantidad, @FechaRegistro, @Observaciones, @Proveedor)";
+                            VALUES (@IdProducto, @Cantidad, @FechaRegistro, @Observaciones, @Proveedor);
+                            SELECT SCOPE_IDENTITY();"; // Recuperar el ID recién creado
+
+                        int idInventarioGenerado = 0;
 
                         using (var inventarioCmd = new SqlCommand(queryInventario, conn, transaction))
                         {
                             inventarioCmd.Parameters.AddWithValue("@IdProducto", registro.IdProducto);
                             inventarioCmd.Parameters.AddWithValue("@Cantidad", registro.Cantidad);
                             inventarioCmd.Parameters.AddWithValue("@FechaRegistro", registro.FechaRegistro);
-                            // Manejo seguro de nulos
                             inventarioCmd.Parameters.AddWithValue("@Observaciones", (object)registro.Observaciones ?? DBNull.Value);
                             inventarioCmd.Parameters.AddWithValue("@Proveedor", (object)registro.Proveedor ?? DBNull.Value);
-                            
-                            inventarioCmd.ExecuteNonQuery();
+
+                            // Ejecutar y obtener el ID
+                            object result = inventarioCmd.ExecuteScalar();
+                            idInventarioGenerado = Convert.ToInt32(result);
+                        }
+
+                        // C. Insertar el PAGO (Salida de dinero - Gasto)
+                        // Solo si hay un costo asociado (CostoTotal > 0)
+                        if (registro.CostoTotal > 0)
+                        {
+                            string queryPago = @"
+                                INSERT INTO PAGO (FECHA_PAGO, MONTO, TIPO_PAGO, ID_VENTA, ID_INVENTARIO)
+                                VALUES (@Fecha, @Monto, @Tipo, NULL, @IdInv)";
+
+                            using (var pagoCmd = new SqlCommand(queryPago, conn, transaction))
+                            {
+                                pagoCmd.Parameters.AddWithValue("@Fecha", DateTime.Now);
+                                pagoCmd.Parameters.AddWithValue("@Monto", registro.CostoTotal);
+                                // Construimos una descripción útil
+                                string metodo = string.IsNullOrEmpty(registro.MetodoPago) ? "Efectivo" : registro.MetodoPago;
+                                pagoCmd.Parameters.AddWithValue("@Tipo", "COMPRA PROVEEDOR - " + metodo);
+                                pagoCmd.Parameters.AddWithValue("@IdInv", idInventarioGenerado);
+
+                                pagoCmd.ExecuteNonQuery();
+                            }
                         }
 
                         transaction.Commit(); // Confirmar cambios
@@ -102,7 +126,8 @@ namespace KIOSKO_Proyecto.Datos
                     {
                         transaction.Rollback(); // Deshacer cambios si algo falla
                         System.Diagnostics.Debug.WriteLine($"Error al registrar entrada de inventario: {ex.Message}");
-                        return false;
+                        // Relanzamos la excepción para que la capa superior (Form) pueda mostrar el mensaje al usuario
+                        throw new Exception("Error en base de datos: " + ex.Message);
                     }
                 }
             }
