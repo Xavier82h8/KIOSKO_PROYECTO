@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
-using KIOSKO_Proyecto; // Explicitly add this
-using KIOSKO_Proyecto.Datos; // Added for Conexion
+using KIOSKO_Proyecto.Datos; // Asegúrate de que este namespace exista para Conexion
+using KIOSKO_Proyecto.BLL;   // Para manejo de excepciones globales si fuera necesario
 
 namespace KIOSKO_Proyecto
 {
@@ -13,40 +13,71 @@ namespace KIOSKO_Proyecto
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            // Ensure database schema is up to date
-            Conexion.EnsureDatabaseSchema();
-
-            // Bucle: mostrar login, luego ventana principal. Si se recibe DialogResult.Retry => volver al login.
-            while (true)
+            try
             {
-                using (var loginForm = new KIOSKO_Proyecto.FormLogin())
+                // 1. Verificar base de datos antes de iniciar nada
+                // Si esta línea falla, caerá en el catch de abajo
+                Conexion.EnsureDatabaseSchema();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error crítico al conectar con la Base de Datos al inicio:\n{ex.Message}",
+                    "Error Fatal", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return; // Cierra la app si no hay BD
+            }
+
+            // 2. Bucle infinito de la aplicación (Login <-> Principal)
+            bool ejecutando = true;
+
+            while (ejecutando)
+            {
+                // PASO A: Mostrar Login
+                using (var loginForm = new FormLogin())
                 {
-                    var loginResult = loginForm.ShowDialog();
-                    if (loginResult != DialogResult.OK)
-                        break;
+                    // Mostramos el login como diálogo modal
+                    var resultadoLogin = loginForm.ShowDialog();
 
-                    // Obtener el objeto Empleado autenticado
-                    var empleadoAutenticado = loginForm.EmpleadoAutenticado;
-                    if (empleadoAutenticado == null)
+                    if (resultadoLogin == DialogResult.OK)
                     {
-                        MessageBox.Show("Error al obtener los datos del empleado. Intente de nuevo.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        continue; // Volver al login
-                    }
+                        // Login exitoso, obtenemos al usuario
+                        var empleado = loginForm.EmpleadoAutenticado;
 
-                    using (var mainForm = new FormPrincipalPOS(empleadoAutenticado))
-                    {
-                        var mainResult = mainForm.ShowDialog();
-                        if (mainResult == DialogResult.Retry)
+                        if (empleado != null)
                         {
-                            // Cerrar sesión: volver a mostrar login
-                            continue;
-                        }
+                            // PASO B: Iniciar Formulario Principal
+                            // Asumo que tu formulario principal se llama FormPrincipalPOS
+                            // Asegúrate de que su constructor acepte el objeto 'empleado'
+                            using (var mainForm = new FormPrincipalPOS(empleado))
+                            {
+                                // Mostramos el principal. El código se detiene aquí hasta que se cierre el Principal.
+                                var resultadoMain = mainForm.ShowDialog();
 
-                        // Cerrar la aplicación en cualquier otro caso
-                        break;
+                                if (resultadoMain == DialogResult.Retry)
+                                {
+                                    // El usuario dio clic en "Cerrar Sesión".
+                                    // El bucle 'while' continúa, volviendo a crear un nuevo FormLogin arriba.
+                                    continue;
+                                }
+                                else
+                                {
+                                    // El usuario cerró la app con la X o Alt+F4.
+                                    ejecutando = false; // Rompe el bucle
+                                }
+                            }
+                        }
+                        else
+                        {
+                            MessageBox.Show("Error: Empleado autenticado es nulo.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            // Vuelve al inicio del while
+                        }
+                    }
+                    else
+                    {
+                        // El usuario canceló o cerró el Login
+                        ejecutando = false; // Salir de la app
                     }
                 }
-            }
+            } // Fin del While
         }
     }
 }

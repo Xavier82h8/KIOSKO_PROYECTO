@@ -20,6 +20,7 @@ namespace KIOSKO_Proyecto
         private List<DetalleVenta> carrito = new List<DetalleVenta>();
         private Modelos.Empleado _empleadoAutenticado;
         private bool _isUpdatingGrid = false; // Evita bucles al editar celdas
+        private bool _isUpdatingPayments = false; // Evita bucles al calcular pagos
 
         // --- CONTROLES ---
         private DataGridView dgvProductos;
@@ -49,6 +50,9 @@ namespace KIOSKO_Proyecto
         private Button btnCobrar;
         private Button btnTicketTemporal;
 
+        // ============================================================
+        // CORRECCIÓN 1: Constructor recibe Empleado desde Login
+        // ============================================================
         public FormPrincipalPOS(Modelos.Empleado empleado)
         {
             _empleadoAutenticado = empleado;
@@ -102,7 +106,7 @@ namespace KIOSKO_Proyecto
             this.ResumeLayout(false);
         }
 
-        // --- DISEÑO DEL ENCABEZADO CORREGIDO ---
+        // --- DISEÑO DEL ENCABEZADO ---
         private Panel CrearPanelSuperior()
         {
             var panel = new Panel { Dock = DockStyle.Top, Height = 90, BackColor = Color.White };
@@ -468,8 +472,10 @@ namespace KIOSKO_Proyecto
                 bool esGerente = puesto.IndexOf("Gerente", StringComparison.OrdinalIgnoreCase) >= 0;
                 bool esSupervisor = puesto.IndexOf("Supervisor", StringComparison.OrdinalIgnoreCase) >= 0;
 
-                // CORRECCIÓN: EL BOTÓN DE PRODUCTOS AHORA ES SIEMPRE VISIBLE
-                btnProductos.Visible = true; // Siempre visible
+                // ============================================================
+                // CORRECCIÓN 2: Botón Productos SIEMPRE visible para todos
+                // ============================================================
+                btnProductos.Visible = true; // Siempre visible para todos los empleados
                 btnGestionInventario.Visible = esAdmin || esGerente || esSupervisor;
                 btnVerReportes.Visible = esAdmin || esGerente || esSupervisor;
             }
@@ -481,12 +487,18 @@ namespace KIOSKO_Proyecto
         {
             dgvProductos.Rows.Clear();
             var productos = productoBLL.ObtenerProductosDisponibles();
-            foreach (var p in productos) { dgvProductos.Rows.Add(p.IdProducto, p.Nombre, p.Categoria, p.Precio, p.CantidadDisponible); }
+            foreach (var p in productos)
+            {
+                dgvProductos.Rows.Add(p.IdProducto, p.Nombre, p.Categoria, p.Precio, p.CantidadDisponible);
+            }
 
             cmbCategoria.Items.Clear();
             cmbCategoria.Items.Add("📋 Todas las categorías");
             var categorias = productoBLL.ObtenerCategorias();
-            foreach (var cat in categorias) { cmbCategoria.Items.Add(cat); }
+            foreach (var cat in categorias)
+            {
+                cmbCategoria.Items.Add(cat);
+            }
             cmbCategoria.SelectedIndex = 0;
         }
 
@@ -496,7 +508,10 @@ namespace KIOSKO_Proyecto
             var textoBusqueda = txtBuscar.Text == "Buscar productos..." ? "" : txtBuscar.Text;
             var productos = productoBLL.FiltrarProductos(textoBusqueda, categoriaSeleccionada);
             dgvProductos.Rows.Clear();
-            foreach (var p in productos) { dgvProductos.Rows.Add(p.IdProducto, p.Nombre, p.Categoria, p.Precio, p.CantidadDisponible); }
+            foreach (var p in productos)
+            {
+                dgvProductos.Rows.Add(p.IdProducto, p.Nombre, p.Categoria, p.Precio, p.CantidadDisponible);
+            }
         }
 
         private void DgvProductos_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
@@ -505,9 +520,22 @@ namespace KIOSKO_Proyecto
             {
                 if (int.TryParse(e.Value.ToString(), out int stock))
                 {
-                    if (stock <= 5) { e.CellStyle.BackColor = Color.FromArgb(255, 230, 230); e.CellStyle.ForeColor = Color.DarkRed; e.CellStyle.Font = new Font(e.CellStyle.Font, FontStyle.Bold); }
-                    else if (stock <= 15) { e.CellStyle.BackColor = Color.FromArgb(255, 250, 230); e.CellStyle.ForeColor = Color.DarkOrange; }
-                    else { e.CellStyle.BackColor = Color.White; e.CellStyle.ForeColor = Color.Black; }
+                    if (stock <= 5)
+                    {
+                        e.CellStyle.BackColor = Color.FromArgb(255, 230, 230);
+                        e.CellStyle.ForeColor = Color.DarkRed;
+                        e.CellStyle.Font = new Font(e.CellStyle.Font, FontStyle.Bold);
+                    }
+                    else if (stock <= 15)
+                    {
+                        e.CellStyle.BackColor = Color.FromArgb(255, 250, 230);
+                        e.CellStyle.ForeColor = Color.DarkOrange;
+                    }
+                    else
+                    {
+                        e.CellStyle.BackColor = Color.White;
+                        e.CellStyle.ForeColor = Color.Black;
+                    }
                 }
             }
         }
@@ -520,7 +548,10 @@ namespace KIOSKO_Proyecto
             if (e.RowIndex < 0) return;
             int idProducto = Convert.ToInt32(dgvProductos.Rows[e.RowIndex].Cells["ID"].Value);
             var producto = productoBLL.ObtenerProductoPorId(idProducto);
-            if (producto != null) { AgregarAlCarrito(producto); }
+            if (producto != null)
+            {
+                AgregarAlCarrito(producto);
+            }
         }
 
         private void AgregarAlCarrito(Producto producto)
@@ -529,13 +560,31 @@ namespace KIOSKO_Proyecto
             if (itemExistente != null)
             {
                 var productoEnGrid = productoBLL.ObtenerProductoPorId(producto.IdProducto);
-                if (itemExistente.Cantidad < productoEnGrid.CantidadDisponible) { itemExistente.Cantidad++; }
-                else { MessageBox.Show("No hay más stock disponible", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                if (itemExistente.Cantidad < productoEnGrid.CantidadDisponible)
+                {
+                    itemExistente.Cantidad++;
+                }
+                else
+                {
+                    MessageBox.Show("No hay más stock disponible", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
             }
             else
             {
-                if (producto.CantidadDisponible > 0) { carrito.Add(new DetalleVenta { ProductoID = producto.IdProducto, Cantidad = 1 }); }
-                else { MessageBox.Show("Producto sin stock", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                if (producto.CantidadDisponible > 0)
+                {
+                    carrito.Add(new DetalleVenta
+                    {
+                        ProductoID = producto.IdProducto,
+                        Cantidad = 1
+                    });
+                }
+                else
+                {
+                    MessageBox.Show("Producto sin stock", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
             }
             ActualizarCarrito();
         }
@@ -618,7 +667,10 @@ namespace KIOSKO_Proyecto
                     ActualizarCarrito();
                 }
             }
-            else { MessageBox.Show("Selecciona un producto para eliminar", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning); }
+            else
+            {
+                MessageBox.Show("Selecciona un producto para eliminar", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
 
         private void BtnLimpiar_Click(object sender, EventArgs e)
@@ -645,8 +697,6 @@ namespace KIOSKO_Proyecto
         }
 
         // --- LÓGICA DE PAGO ---
-        private bool _isUpdatingPayments = false;
-
         private void TxtMontoEfectivo_TextChanged(object sender, EventArgs e)
         {
             if (_isUpdatingPayments) return;
@@ -673,8 +723,13 @@ namespace KIOSKO_Proyecto
             _isUpdatingPayments = false;
         }
 
+        // ============================================================
+        // CORRECCIÓN 3: Método BtnCobrar_Click SIN VALORES NULL
+        // Maneja pagos Efectivo, Tarjeta y Mixtos correctamente
+        // ============================================================
         private void BtnCobrar_Click(object sender, EventArgs e)
         {
+            // 1. Validar que hay productos
             if (!carrito.Any())
             {
                 MessageBox.Show("El carrito está vacío.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -682,34 +737,62 @@ namespace KIOSKO_Proyecto
             }
 
             decimal totalVenta = carrito.Sum(c => c.Subtotal);
+
+            // 2. Obtener montos (Si las cajas están vacías, TryParse las deja en 0.00)
             decimal.TryParse(txtMontoEfectivo.Text, out decimal montoEfectivo);
             decimal.TryParse(txtMontoTarjeta.Text, out decimal montoTarjeta);
 
+            // 3. Validar que el pago cubra el total (con tolerancia de 0.01 por redondeo)
             if ((montoEfectivo + montoTarjeta) < (totalVenta - 0.01m))
             {
                 MessageBox.Show("El monto pagado es insuficiente.", "Error de Pago", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
+            // 4. Calcular Cambio
             decimal cambio = (montoEfectivo + montoTarjeta) - totalVenta;
 
+            // 5. Determinar Método de Pago AUTOMÁTICAMENTE
+            string metodoPagoDefinido = "Efectivo"; // Valor por defecto
+
+            if (montoEfectivo > 0 && montoTarjeta > 0)
+            {
+                metodoPagoDefinido = "Mixto";
+            }
+            else if (montoTarjeta > 0 && montoEfectivo == 0)
+            {
+                metodoPagoDefinido = "Tarjeta";
+            }
+
+            // 6. Crear el objeto Venta SIN NULOS (Todos los valores son decimales, no nullable)
             var venta = new Venta
             {
                 EmpleadoID = _empleadoAutenticado.IdEmpleado,
                 FechaVenta = DateTime.Now,
                 TotalVenta = totalVenta,
-                MontoEfectivo = montoEfectivo > 0 ? montoEfectivo : (decimal?)null,
-                MontoTarjeta = montoTarjeta > 0 ? montoTarjeta : (decimal?)null,
-                Cambio = cambio > 0 ? cambio : (decimal?)null,
+                MontoEfectivo = montoEfectivo,      // Siempre envía el valor, aunque sea 0
+                MontoTarjeta = montoTarjeta,        // Siempre envía el valor, aunque sea 0
+                Cambio = cambio,                    // Siempre envía el valor, aunque sea 0
+                MetodoPago = metodoPagoDefinido,    // Siempre tiene un valor
                 Detalles = this.carrito
             };
 
+            // 7. Registrar en Base de Datos
             Venta ventaRegistrada = ventaBLL.RegistrarVenta(venta);
 
             if (ventaRegistrada != null)
             {
-                MessageBox.Show($"Venta registrada con éxito.\nTotal: {ventaRegistrada.TotalVenta:C2}\nCambio: {ventaRegistrada.Cambio:C2}", "Venta Completada", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(
+                    $"Venta registrada con éxito.\n\n" +
+                    $"Total: {ventaRegistrada.TotalVenta:C2}\n" +
+                    $"Método: {ventaRegistrada.MetodoPago}\n" +
+                    $"Cambio: {ventaRegistrada.Cambio:C2}",
+                    "Venta Completada",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
 
+                // 8. Generar Ticket (Opcional)
                 if (MessageBox.Show("¿Desea generar el ticket de venta?", "Generar Ticket", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 {
                     using (var saveFileDialog = new SaveFileDialog())
@@ -732,6 +815,7 @@ namespace KIOSKO_Proyecto
                         }
                     }
                 }
+
                 LimpiarVenta();
                 CargarProductos();
             }
@@ -773,22 +857,28 @@ namespace KIOSKO_Proyecto
             {
                 FormInventario formInv = new FormInventario(_empleadoAutenticado);
                 formInv.ShowDialog();
-                CargarProductos();
+                CargarProductos(); // Recargar productos al volver
             }
-            catch (Exception ex) { MessageBox.Show("Error al abrir inventario: " + ex.Message); }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al abrir inventario: " + ex.Message);
+            }
         }
 
-        // CORRECCIÓN: Botón de productos ahora abre el formulario correcto
+        // ============================================================
+        // CORRECCIÓN 2: Botón Productos pasa el empleado correctamente
+        // ============================================================
         private void BtnProductos_Click(object sender, EventArgs e)
         {
             try
             {
-                // Abrir el formulario de gestión de productos con el usuario autenticado
-                FormularioProducto formProductos = new FormularioProducto();
-                formProductos.EmpleadoAutenticado = _empleadoAutenticado;
-                formProductos.ShowDialog();
+                // NOTA: Asegúrate de que FormularioProducto tenga la propiedad:
+                // public Empleado EmpleadoAutenticado { get; set; }
+                FormularioProducto frm = new FormularioProducto();
+                frm.EmpleadoAutenticado = _empleadoAutenticado; // Pasamos el usuario autenticado
+                frm.ShowDialog();
 
-                // Recargar productos después de cerrar el formulario
+                // Al volver, recargamos productos por si hubo cambios
                 CargarProductos();
             }
             catch (Exception ex)
@@ -804,37 +894,23 @@ namespace KIOSKO_Proyecto
                 FormVerReportes formRep = new FormVerReportes(_empleadoAutenticado);
                 formRep.ShowDialog();
             }
-            catch (Exception ex) { MessageBox.Show("Error al abrir reportes: " + ex.Message); }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al abrir reportes: " + ex.Message);
+            }
         }
 
-        // CORRECCIÓN: Flujo de cierre de sesión mejorado
+        // ============================================================
+        // CORRECCIÓN 4: Cierre de Sesión devuelve DialogResult.Retry
+        // Esto permite reiniciar el ciclo en Program.cs
+        // ============================================================
         private void BtnCerrarSesion_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show("¿Estás seguro de cerrar sesión?", "Cerrar Sesión", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
-                // Ocultar el formulario actual
-                this.Hide();
-
-                // Crear y mostrar el formulario de login
-                FormLogin loginForm = new FormLogin();
-
-                // Mostrar el login de forma modal
-                if (loginForm.ShowDialog() == DialogResult.OK)
-                {
-                    // Si el login fue exitoso, actualizar el empleado autenticado
-                    _empleadoAutenticado = loginForm.EmpleadoAutenticado;
-
-                    // Actualizar la interfaz de usuario
-                    InitializeUserInterface();
-
-                    // Mostrar el formulario principal nuevamente
-                    this.Show();
-                }
-                else
-                {
-                    // Si el usuario canceló el login, cerrar la aplicación
-                    Application.Exit();
-                }
+                // Esta línea es CLAVE: le indica al Program.cs que reinicie el Login
+                this.DialogResult = DialogResult.Retry;
+                this.Close();
             }
         }
     }

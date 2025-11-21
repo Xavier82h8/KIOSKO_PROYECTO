@@ -103,7 +103,7 @@ namespace KIOSKO_Proyecto
 
             try
             {
-                // Asumiendo que VentaBLL tiene este método. Si no, usa _reporteBLL.GenerarReporteVentasDetallado
+                // Usamos _reporteBLL porque es el que tiene la lógica centralizada de reportes
                 _reporteActual = _reporteBLL.GenerarReporteVentasDetallado(desde, hasta);
             }
             catch (Exception ex)
@@ -167,7 +167,6 @@ namespace KIOSKO_Proyecto
             }
         }
 
-        // --- AQUÍ ESTÁ LA SOLUCIÓN AL ERROR DE VARIABLES ---
         private void BtnGenerarCortePdf_Click(object sender, EventArgs e)
         {
             if (_reporteActual == null || !_reporteActual.Any()) return;

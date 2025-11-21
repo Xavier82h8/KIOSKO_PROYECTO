@@ -27,7 +27,7 @@ namespace KIOSKO_Proyecto
         // Controles Pestaña Corte
         private DateTimePicker dtpFechaCorte;
         private Button btnGenerarCorte;
-        private Button btnExportarCortePDF; // Botón independiente
+        private Button btnExportarCortePDF;
         private DataGridView dgvCorteCaja;
         private Label lblTotalCorte;
 
@@ -57,15 +57,138 @@ namespace KIOSKO_Proyecto
 
         private void InicializarTabVentas()
         {
-            var panel = new FlowLayoutPanel { Dock = DockStyle.Top, Padding = new Padding(10), Height = 60, WrapContents = false };
-            dtpInicioVentas = new DateTimePicker { Format = DateTimePickerFormat.Short, Width = 120 };
-            dtpFinVentas = new DateTimePicker { Format = DateTimePickerFormat.Short, Width = 120 };
-            btnGenerarReporteVentas = new Button { Text = "Buscar", BackColor = Color.DodgerBlue, ForeColor = Color.White, Height = 30 };
-            btnExportarVentasCSV = new Button { Text = "Exportar CSV", BackColor = Color.SeaGreen, ForeColor = Color.White, Height = 30, Enabled = false };
+            var panel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                Padding = new Padding(10),
+                Height = 60,
+                WrapContents = false
+            };
 
-            panel.Controls.AddRange(new Control[] { new Label { Text = "Del:", AutoSize = true, Margin = new Padding(0, 5, 0, 0) }, dtpInicioVentas, new Label { Text = "Al:", AutoSize = true, Margin = new Padding(10, 5, 0, 0) }, dtpFinVentas, btnGenerarReporteVentas, btnExportarVentasCSV });
+            dtpInicioVentas = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                Width = 120,
+                Value = DateTime.Today.AddDays(-7) // Por defecto última semana
+            };
 
-            dgvVentasDetalladas = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false, ReadOnly = true, AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill, BackgroundColor = Color.WhiteSmoke };
+            dtpFinVentas = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                Width = 120,
+                Value = DateTime.Today
+            };
+
+            btnGenerarReporteVentas = new Button
+            {
+                Text = "Buscar",
+                BackColor = Color.DodgerBlue,
+                ForeColor = Color.White,
+                Height = 30,
+                Width = 100
+            };
+
+            btnExportarVentasCSV = new Button
+            {
+                Text = "Exportar CSV",
+                BackColor = Color.SeaGreen,
+                ForeColor = Color.White,
+                Height = 30,
+                Width = 120,
+                Enabled = false
+            };
+
+            panel.Controls.AddRange(new Control[]
+            {
+                new Label { Text = "Del:", AutoSize = true, Margin = new Padding(0, 5, 0, 0) },
+                dtpInicioVentas,
+                new Label { Text = "Al:", AutoSize = true, Margin = new Padding(10, 5, 0, 0) },
+                dtpFinVentas,
+                btnGenerarReporteVentas,
+                btnExportarVentasCSV
+            });
+
+            // ============================================================
+            // CORRECCIÓN: Configurar columnas manualmente para evitar NULL
+            // ============================================================
+            dgvVentasDetalladas = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                AllowUserToAddRows = false,
+                ReadOnly = true,
+                AutoGenerateColumns = false, // ¡IMPORTANTE! Desactivamos auto-generación
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                BackgroundColor = Color.WhiteSmoke,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect
+            };
+
+            // Definir columnas manualmente
+            dgvVentasDetalladas.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "VentaID",
+                HeaderText = "ID Venta",
+                DataPropertyName = "VentaID",
+                FillWeight = 10
+            });
+
+            dgvVentasDetalladas.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "FechaVenta",
+                HeaderText = "Fecha",
+                DataPropertyName = "FechaVenta",
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "g" },
+                FillWeight = 20
+            });
+
+            dgvVentasDetalladas.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "NombreEmpleado",
+                HeaderText = "Empleado",
+                DataPropertyName = "NombreEmpleado",
+                FillWeight = 20
+            });
+
+            dgvVentasDetalladas.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "NombreProducto",
+                HeaderText = "Producto",
+                DataPropertyName = "NombreProducto",
+                FillWeight = 25
+            });
+
+            dgvVentasDetalladas.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Cantidad",
+                HeaderText = "Cant.",
+                DataPropertyName = "Cantidad",
+                FillWeight = 8
+            });
+
+            dgvVentasDetalladas.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "PrecioUnitario",
+                HeaderText = "Precio Unit.",
+                DataPropertyName = "PrecioUnitario",
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" },
+                FillWeight = 12
+            });
+
+            dgvVentasDetalladas.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "Subtotal",
+                HeaderText = "Subtotal",
+                DataPropertyName = "Subtotal",
+                DefaultCellStyle = new DataGridViewCellStyle { Format = "C2" },
+                FillWeight = 12
+            });
+
+            dgvVentasDetalladas.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = "MetodoPago",
+                HeaderText = "Método Pago",
+                DataPropertyName = "MetodoPago",
+                FillWeight = 15
+            });
 
             tabVentasDetalladas.Controls.Add(dgvVentasDetalladas);
             tabVentasDetalladas.Controls.Add(panel);
@@ -76,19 +199,70 @@ namespace KIOSKO_Proyecto
 
         private void InicializarTabCorteCaja()
         {
-            var panel = new FlowLayoutPanel { Dock = DockStyle.Top, Padding = new Padding(10), Height = 60, WrapContents = false };
-            dtpFechaCorte = new DateTimePicker { Format = DateTimePickerFormat.Short, Width = 120 };
+            var panel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                Padding = new Padding(10),
+                Height = 60,
+                WrapContents = false
+            };
 
-            // Botón Naranja: Hace todo el proceso (Cálculo + Arqueo + BD + PDF)
-            btnGenerarCorte = new Button { Text = "Realizar Cierre y Arqueo", Width = 180, BackColor = Color.OrangeRed, ForeColor = Color.White, Height = 30, FlatStyle = FlatStyle.Flat };
+            dtpFechaCorte = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                Width = 120,
+                Value = DateTime.Today
+            };
 
-            // Botón Rojo: Solo re-imprime lo que se ve en pantalla (Opcional)
-            btnExportarCortePDF = new Button { Text = "Exportar PDF", Width = 120, BackColor = Color.IndianRed, ForeColor = Color.White, Height = 30, FlatStyle = FlatStyle.Flat, Enabled = false };
+            btnGenerarCorte = new Button
+            {
+                Text = "Realizar Cierre y Arqueo",
+                Width = 180,
+                BackColor = Color.OrangeRed,
+                ForeColor = Color.White,
+                Height = 30,
+                FlatStyle = FlatStyle.Flat
+            };
 
-            panel.Controls.AddRange(new Control[] { new Label { Text = "Fecha:", AutoSize = true, Margin = new Padding(0, 5, 0, 0) }, dtpFechaCorte, btnGenerarCorte, btnExportarCortePDF });
+            btnExportarCortePDF = new Button
+            {
+                Text = "Exportar PDF",
+                Width = 120,
+                BackColor = Color.IndianRed,
+                ForeColor = Color.White,
+                Height = 30,
+                FlatStyle = FlatStyle.Flat,
+                Enabled = false
+            };
 
-            dgvCorteCaja = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false, ReadOnly = true, AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill, BackgroundColor = Color.WhiteSmoke };
-            lblTotalCorte = new Label { Dock = DockStyle.Bottom, Text = "Esperando corte...", Font = new Font("Segoe UI", 12, FontStyle.Bold), Padding = new Padding(10), Height = 40, BackColor = Color.LightGray, TextAlign = ContentAlignment.MiddleRight };
+            panel.Controls.AddRange(new Control[]
+            {
+                new Label { Text = "Fecha:", AutoSize = true, Margin = new Padding(0, 5, 0, 0) },
+                dtpFechaCorte,
+                btnGenerarCorte,
+                btnExportarCortePDF
+            });
+
+            dgvCorteCaja = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                AllowUserToAddRows = false,
+                ReadOnly = true,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                BackgroundColor = Color.WhiteSmoke,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect
+            };
+
+            lblTotalCorte = new Label
+            {
+                Dock = DockStyle.Bottom,
+                Text = "Esperando corte...",
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                Padding = new Padding(10),
+                Height = 40,
+                BackColor = Color.LightGray,
+                TextAlign = ContentAlignment.MiddleRight
+            };
 
             tabCorteCaja.Controls.Add(dgvCorteCaja);
             tabCorteCaja.Controls.Add(lblTotalCorte);
@@ -103,72 +277,161 @@ namespace KIOSKO_Proyecto
         {
             try
             {
-                var data = _reporteBLL.GenerarReporteVentasDetallado(dtpInicioVentas.Value, dtpFinVentas.Value);
-                dgvVentasDetalladas.DataSource = data;
-                dgvVentasDetalladas.Tag = data;
-                btnExportarVentasCSV.Enabled = data.Count > 0;
-                if (data.Count == 0) MessageBox.Show("No hay ventas en este rango.");
+                var desde = dtpInicioVentas.Value.Date;
+                var hasta = dtpFinVentas.Value.Date.AddDays(1).AddTicks(-1); // Hasta las 23:59:59
+
+                var data = _reporteBLL.GenerarReporteVentasDetallado(desde, hasta);
+
+                // ============================================================
+                // CORRECCIÓN: Llenar manualmente para evitar NULL
+                // ============================================================
+                dgvVentasDetalladas.Rows.Clear();
+
+                if (data != null && data.Count > 0)
+                {
+                    foreach (var item in data)
+                    {
+                        dgvVentasDetalladas.Rows.Add(
+                            item.VentaID,
+                            item.FechaVenta,
+                            item.NombreEmpleado ?? "N/A",
+                            item.NombreProducto ?? "N/A",
+                            item.Cantidad,
+                            item.PrecioUnitario,
+                            item.Subtotal,
+                            item.MetodoPago ?? "N/A"
+                        );
+                    }
+
+                    dgvVentasDetalladas.Tag = data; // Guardamos para exportar
+                    btnExportarVentasCSV.Enabled = true;
+                    MessageBox.Show($"Se encontraron {data.Count} registros de ventas.", "Reporte Generado", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    btnExportarVentasCSV.Enabled = false;
+                    MessageBox.Show("No hay ventas en este rango de fechas.", "Sin Resultados", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
             }
-            catch (Exception ex) { MessageBox.Show(ex.Message); }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al generar reporte: {ex.Message}\n\nDetalles: {ex.StackTrace}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void BtnExportarVentasCSV_Click(object sender, EventArgs e)
         {
             var data = dgvVentasDetalladas.Tag as List<VentaDetalladaReporte>;
-            if (data == null) return;
-            using (var sfd = new SaveFileDialog { Filter = "CSV|*.csv", FileName = $"Ventas_{DateTime.Now:yyyyMMdd}.csv" })
+            if (data == null || data.Count == 0)
+            {
+                MessageBox.Show("No hay datos para exportar.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            using (var sfd = new SaveFileDialog
+            {
+                Filter = "Archivo CSV (*.csv)|*.csv",
+                FileName = $"Ventas_{DateTime.Now:yyyyMMdd_HHmm}.csv"
+            })
             {
                 if (sfd.ShowDialog() == DialogResult.OK)
                 {
-                    _reporteBLL.ExportarVentasDetalladasCSV(data, sfd.FileName);
-                    MessageBox.Show("Exportado correctamente.");
+                    try
+                    {
+                        _reporteBLL.ExportarVentasDetalladasCSV(data, sfd.FileName);
+                        MessageBox.Show($"Archivo exportado correctamente en:\n{sfd.FileName}", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Error al exportar: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
                 }
             }
         }
 
         // --- EVENTOS DE CORTE DE CAJA ---
-
-        // 1. Botón Principal: Realizar Arqueo y Guardar
         private void BtnGenerarCorte_Click(object sender, EventArgs e)
         {
             try
             {
                 // 1. Obtener datos del sistema
                 var corteData = _reporteBLL.GenerarCorteCajaDiario(dtpFechaCorte.Value);
-                dgvCorteCaja.DataSource = corteData.Ventas;
-                dgvCorteCaja.Tag = corteData; // Guardamos para usar en el otro botón
+
+                // ============================================================
+                // CORRECCIÓN: No usar DataSource, llenar manualmente
+                // ============================================================
+                dgvCorteCaja.Rows.Clear();
+                dgvCorteCaja.Columns.Clear();
+
+                // Definir columnas del grid de corte
+                dgvCorteCaja.Columns.Add("VentaID", "ID Venta");
+                dgvCorteCaja.Columns.Add("FechaVenta", "Fecha/Hora");
+                dgvCorteCaja.Columns.Add("TotalVenta", "Total");
+                dgvCorteCaja.Columns.Add("MontoEfectivo", "Efectivo");
+                dgvCorteCaja.Columns.Add("MontoTarjeta", "Tarjeta");
+                dgvCorteCaja.Columns.Add("NombreEmpleado", "Cajero");
+
+                dgvCorteCaja.Columns["TotalVenta"].DefaultCellStyle.Format = "C2";
+                dgvCorteCaja.Columns["MontoEfectivo"].DefaultCellStyle.Format = "C2";
+                dgvCorteCaja.Columns["MontoTarjeta"].DefaultCellStyle.Format = "C2";
 
                 if (corteData.Ventas.Count == 0)
                 {
-                    lblTotalCorte.Text = "Sin ventas registradas hoy.";
-                    MessageBox.Show("No hay ventas para realizar el corte.", "Aviso");
+                    lblTotalCorte.Text = "Sin ventas registradas en esta fecha.";
+                    MessageBox.Show("No hay ventas para realizar el corte.", "Sin Ventas", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    btnExportarCortePDF.Enabled = false;
+                    dgvCorteCaja.Tag = null;
                     return;
                 }
 
-                lblTotalCorte.Text = $"Sistema Espera: {corteData.TotalDia:C2}";
-                btnExportarCortePDF.Enabled = true; // Habilitar el botón de reimpresión
+                // Llenar el grid manualmente
+                foreach (var v in corteData.Ventas)
+                {
+                    dgvCorteCaja.Rows.Add(
+                        v.VentaID,
+                        v.FechaVenta.ToString("g"),
+                        v.TotalVenta,
+                        v.MontoEfectivo,
+                        v.MontoTarjeta,
+                        v.NombreEmpleado ?? "N/A"
+                    );
+                }
+
+                dgvCorteCaja.Tag = corteData;
+                lblTotalCorte.Text = $"Sistema Espera: {corteData.TotalDia:C2} | Efectivo: {corteData.TotalEfectivo:C2} | Tarjeta: {corteData.TotalTarjeta:C2}";
+                btnExportarCortePDF.Enabled = true;
 
                 // 2. Pedir Arqueo Ciego
                 string input = Interaction.InputBox(
-                    $"El sistema indica ventas por: {corteData.TotalDia:C2}\n\nIngresa la cantidad TOTAL REAL (Efectivo + Vouchers) que tienes en caja:",
-                    "Arqueo de Caja", "0");
+                    $"El sistema indica ventas por: {corteData.TotalDia:C2}\n\n" +
+                    $"Desglose:\n" +
+                    $"• Efectivo: {corteData.TotalEfectivo:C2}\n" +
+                    $"• Tarjeta: {corteData.TotalTarjeta:C2}\n\n" +
+                    $"Ingresa la cantidad TOTAL REAL (Efectivo + Vouchers) que tienes en caja:",
+                    "Arqueo de Caja",
+                    "0");
+
+                if (string.IsNullOrEmpty(input)) return;
 
                 if (decimal.TryParse(input, out decimal montoReal))
                 {
                     decimal diferencia = montoReal - corteData.TotalDia;
-                    string estado = diferencia == 0 ? "EXACTO" : (diferencia < 0 ? "FALTANTE" : "SOBRANTE");
+                    string estado = diferencia == 0 ? "✅ EXACTO" : (diferencia < 0 ? "⚠️ FALTANTE" : "⚠️ SOBRANTE");
 
-                    var msg = $"Sistema: {corteData.TotalDia:C2}\nReal: {montoReal:C2}\n\nEstado: {estado} de {diferencia:C2}\n\n¿Deseas GUARDAR este corte y generar PDF?";
+                    var msg = $"Sistema: {corteData.TotalDia:C2}\n" +
+                             $"Real: {montoReal:C2}\n\n" +
+                             $"Estado: {estado} de {Math.Abs(diferencia):C2}\n\n" +
+                             $"¿Deseas GUARDAR este corte y generar PDF?";
 
                     if (MessageBox.Show(msg, "Confirmar Cierre", MessageBoxButtons.YesNo,
                         diferencia < 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information) == DialogResult.Yes)
                     {
-                        // 3. Crear objeto Historial (AQUÍ ES DONDE NACEN LAS VARIABLES)
+                        // 3. Crear objeto Historial
                         var historial = new HistorialCorte
                         {
                             IdEmpleado = _empleado.IdEmpleado,
                             NombreEmpleado = _empleado.NombreEmp,
-                            FechaCorte = dtpFechaCorte.Value,
+                            FechaCorte = DateTime.Now,
                             TotalSistema = corteData.TotalDia,
                             TotalReal = montoReal,
                             Diferencia = diferencia,
@@ -180,71 +443,79 @@ namespace KIOSKO_Proyecto
                         // 4. Guardar en BD
                         if (_reporteBLL.RegistrarCorteCaja(historial))
                         {
-                            // 5. Generar PDF inmediatamente
-                            using (var sfd = new SaveFileDialog { Filter = "PDF|*.pdf", FileName = $"CierreCaja_{DateTime.Now:HHmm}.pdf" })
+                            // 5. Generar PDF
+                            using (var sfd = new SaveFileDialog
+                            {
+                                Filter = "Archivo PDF (*.pdf)|*.pdf",
+                                FileName = $"CierreCaja_{DateTime.Now:yyyyMMdd_HHmm}.pdf"
+                            })
                             {
                                 if (sfd.ShowDialog() == DialogResult.OK)
                                 {
-                                    // AQUÍ SÍ EXISTEN corteData Y historial
                                     _reporteBLL.ExportarCorteCajaPDF(corteData, historial, sfd.FileName);
-                                    MessageBox.Show("Cierre guardado y PDF generado exitosamente.", "Proceso Terminado");
+                                    MessageBox.Show($"✅ Cierre guardado y PDF generado exitosamente en:\n{sfd.FileName}", "Proceso Terminado", MessageBoxButtons.OK, MessageBoxIcon.Information);
                                 }
                             }
+                        }
+                        else
+                        {
+                            MessageBox.Show("Error al guardar el corte en la base de datos.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
                 }
                 else
                 {
-                    MessageBox.Show("Monto inválido.");
+                    MessageBox.Show("Monto inválido. Debes ingresar un número.", "Error de Formato", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error en corte: " + ex.Message);
+                MessageBox.Show($"Error en corte: {ex.Message}\n\n{ex.StackTrace}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // 2. Botón Secundario: Reimprimir PDF (si el usuario quiere otra copia)
         private void BtnExportarCortePDF_Click(object sender, EventArgs e)
         {
             try
             {
-                // Recuperamos los datos del sistema del Tag del grid
                 var corteData = dgvCorteCaja.Tag as CorteCaja;
 
                 if (corteData == null || corteData.Ventas.Count == 0)
                 {
-                    MessageBox.Show("Primero debes generar los datos del corte.");
+                    MessageBox.Show("Primero debes generar los datos del corte.", "Sin Datos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                // Como este botón no pide Arqueo, creamos un historial "dummy" igual al sistema
-                // para poder imprimir el reporte sin errores.
+                // Historial dummy para reimpresión
                 var historialDummy = new HistorialCorte
                 {
                     IdEmpleado = _empleado.IdEmpleado,
                     NombreEmpleado = _empleado.NombreEmp,
                     FechaCorte = corteData.Fecha,
                     TotalSistema = corteData.TotalDia,
-                    TotalReal = corteData.TotalDia, // Asumimos exacto para reimpresión simple
+                    TotalReal = corteData.TotalDia,
                     Diferencia = 0,
                     TotalEfectivo = corteData.TotalEfectivo,
                     TotalTarjeta = corteData.TotalTarjeta,
                     Comentarios = "Reimpresión de vista previa"
                 };
 
-                using (var sfd = new SaveFileDialog { Filter = "PDF|*.pdf", FileName = $"ReporteVista_{DateTime.Now:HHmm}.pdf" })
+                using (var sfd = new SaveFileDialog
+                {
+                    Filter = "Archivo PDF (*.pdf)|*.pdf",
+                    FileName = $"ReporteVista_{DateTime.Now:yyyyMMdd_HHmm}.pdf"
+                })
                 {
                     if (sfd.ShowDialog() == DialogResult.OK)
                     {
                         _reporteBLL.ExportarCorteCajaPDF(corteData, historialDummy, sfd.FileName);
-                        MessageBox.Show("PDF Exportado.");
+                        MessageBox.Show($"PDF Exportado en:\n{sfd.FileName}", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error al exportar: " + ex.Message);
+                MessageBox.Show($"Error al exportar: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

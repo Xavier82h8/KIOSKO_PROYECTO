@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using KIOSKO_Proyecto.BLL;
+using KIOSKO_Proyecto.Modelos; // Asegúrate de tener este namespace para 'Empleado'
 
 namespace KIOSKO_Proyecto
 {
@@ -17,14 +18,31 @@ namespace KIOSKO_Proyecto
         private Panel panelPrincipal;
         private PictureBox pbLogo;
         private bool mostrarPassword = false;
-        
-        private EmpleadoBLL _empleadoBLL = new EmpleadoBLL();
-        public Modelos.Empleado EmpleadoAutenticado { get; private set; }
+
+        // CORRECCIÓN 1: Declarar la variable sin instanciarla aquí para evitar crashes
+        private EmpleadoBLL _empleadoBLL;
+
+        public Empleado EmpleadoAutenticado { get; private set; }
 
         public FormLogin()
         {
             InitializeComponent();
             this.DoubleBuffered = true;
+
+            // CORRECCIÓN 2: Instanciar la BLL dentro de un try-catch
+            // Esto evita que la app se cierre de golpe si no hay conexión
+            try
+            {
+                _empleadoBLL = new EmpleadoBLL();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("No se pudo establecer conexión con la base de datos.\n" +
+                                "Detalle: " + ex.Message,
+                                "Error de Conexión", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                // Opcional: Deshabilitar el botón de ingresar si no hay conexión
+                if (btnIngresar != null) btnIngresar.Enabled = false;
+            }
         }
 
         private void InitializeComponent()
@@ -51,8 +69,6 @@ namespace KIOSKO_Proyecto
                 Location = new Point(60, 150),
                 SizeMode = PictureBoxSizeMode.Zoom,
                 BackColor = Color.White
-                // Recuerda asignar una imagen aquí, por ejemplo:
-                // pbLogo.Image = Properties.Resources.TuLogo;
             };
 
             // Título en panel lateral
@@ -120,7 +136,7 @@ namespace KIOSKO_Proyecto
                 AutoSize = true
             };
 
-            // Label Email
+            // Label Email/Usuario
             var lblEmail = new Label
             {
                 Text = "Nombre de usuario",
@@ -170,6 +186,14 @@ namespace KIOSKO_Proyecto
                 UseSystemPasswordChar = true,
                 BackColor = Color.White,
                 ForeColor = Color.FromArgb(50, 50, 70)
+            };
+            // Agregar evento KeyDown para aceptar con ENTER
+            txtContrasena.KeyDown += (s, e) => {
+                if (e.KeyCode == Keys.Enter)
+                {
+                    BtnIngresar_Click(this, new EventArgs());
+                    e.SuppressKeyPress = true; // Evitar sonido 'ding'
+                }
             };
 
             btnMostrarContrasena = new Button
@@ -229,15 +253,16 @@ namespace KIOSKO_Proyecto
             btnIngresar.MouseEnter += (s, e) => btnIngresar.BackColor = Color.FromArgb(35, 120, 180);
             btnIngresar.MouseLeave += (s, e) => btnIngresar.BackColor = Color.FromArgb(45, 140, 200);
 
-            panelPrincipal.Controls.AddRange(new Control[] { 
-                btnCerrar, lblBienvenida, lblSubBienvenida, 
-                lblEmail, panelUsuario, lblPassword, panelContrasena, 
-                lblRecordarContrasena, btnIngresar 
+            panelPrincipal.Controls.AddRange(new Control[] {
+                btnCerrar, lblBienvenida, lblSubBienvenida,
+                lblEmail, panelUsuario, lblPassword, panelContrasena,
+                lblRecordarContrasena, btnIngresar
             });
 
             this.Controls.Add(panelPrincipal);
             this.Controls.Add(panelLateral);
-            
+
+            // Asignar botón predeterminado
             this.AcceptButton = btnIngresar;
         }
 
@@ -295,38 +320,53 @@ namespace KIOSKO_Proyecto
 
         private void BtnIngresar_Click(object sender, EventArgs e)
         {
+            if (_empleadoBLL == null)
+            {
+                MessageBox.Show("No hay conexión con la base de datos. Reinicia la aplicación.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             var usuario = txtUsuario.Text.Trim();
             var pass = txtContrasena.Text ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(usuario))
             {
-                MessageBox.Show("Por favor introduce tu usuario.", "Atención", 
+                MessageBox.Show("Por favor introduce tu usuario.", "Atención",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtUsuario.Focus();
                 return;
             }
 
-            var id = _empleadoBLL.ValidarCredenciales(usuario, pass);
-            if (id.HasValue)
+            // Validar credenciales usando Try/Catch por si la consulta falla
+            try
             {
-                EmpleadoAutenticado = _empleadoBLL.ObtenerEmpleadoPorId(id.Value);
-                if (EmpleadoAutenticado != null)
+                var id = _empleadoBLL.ValidarCredenciales(usuario, pass);
+                if (id.HasValue)
                 {
-                    this.DialogResult = DialogResult.OK;
-                    this.Close();
+                    EmpleadoAutenticado = _empleadoBLL.ObtenerEmpleadoPorId(id.Value);
+                    if (EmpleadoAutenticado != null)
+                    {
+                        this.DialogResult = DialogResult.OK;
+                        this.Close();
+                    }
+                    else
+                    {
+                        MessageBox.Show("Error al obtener los datos del empleado.", "Error",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
                 }
                 else
                 {
-                    MessageBox.Show("Error al obtener los datos del empleado.", "Error", 
+                    MessageBox.Show("Usuario o contraseña incorrectos.", "Error",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    txtContrasena.SelectAll();
+                    txtContrasena.Focus();
                 }
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show("Usuario o contraseña incorrectos.", "Error", 
+                MessageBox.Show($"Ocurrió un error al intentar validar el usuario: {ex.Message}", "Error Base de Datos",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
-                txtContrasena.SelectAll();
-                txtContrasena.Focus();
             }
         }
     }
